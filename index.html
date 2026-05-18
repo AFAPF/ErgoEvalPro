@@ -1,0 +1,1254 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>ErgoEval Pro – Bilan numérique complet</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #f4f7fc; --surface: #ffffff; --text: #1e293b;
+      --primary: #3b82f6; --primary-hover: #2563eb;
+      --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
+      --border: #e2e8f0; --radius: 12px;
+      --shadow: 0 8px 24px rgba(0,0,0,0.06);
+      --font-size: 16px; --font-family: 'Inter', system-ui, sans-serif;
+    }
+    body.dark {
+      --bg: #0f172a; --surface: #1e293b; --text: #e2e8f0;
+      --primary: #60a5fa; --primary-hover: #3b82f6;
+      --success: #34d399; --warning: #fbbf24; --danger: #f87171;
+      --border: #334155;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-family); font-size: var(--font-size);
+      background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh;
+      transition: background 0.3s, color 0.3s;
+    }
+    .app-shell { max-width: 960px; margin: 0 auto; padding: 1rem; display: flex; flex-direction: column; min-height: 100vh; }
+    .top-nav {
+      display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;
+      background: var(--surface); padding: 0.75rem 1rem; border-radius: var(--radius); box-shadow: var(--shadow);
+    }
+    .logo { font-weight: 700; font-size: 1.25rem; color: var(--primary); margin-right: auto; }
+    .btn {
+      background: var(--primary); color: white; border: none; padding: 0.5rem 1rem; border-radius: 8px;
+      cursor: pointer; font-weight: 500; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 0.3rem;
+      transition: all 0.2s; white-space: nowrap;
+    }
+    .btn:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+    .btn.secondary { background: #64748b; }
+    .btn.success { background: var(--success); }
+    .btn.warning { background: var(--warning); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+    .card {
+      background: var(--surface); border-radius: var(--radius); padding: 2rem; margin-bottom: 1rem;
+      box-shadow: var(--shadow); border: 1px solid var(--border);
+    }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0.75rem; }
+    input, select, textarea {
+      padding: 0.6rem; border: 1px solid var(--border); border-radius: 8px;
+      background: var(--surface); color: var(--text); font-size: 0.95rem; font-family: var(--font-family);
+    }
+    .game-area {
+      position: relative; width: 100%; height: 400px; background: #f8fafc;
+      border: 2px solid var(--border); border-radius: var(--radius); overflow: hidden; margin: 1rem 0;
+    }
+    .target {
+      position: absolute; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #ff6b6b, #c92a2a);
+      box-shadow: 0 0 12px rgba(255,0,0,0.5); transition: transform 0.1s;
+    }
+    .target.clicked { background: radial-gradient(circle at 30% 30%, #69db7c, #2b8a3e); }
+    .timer { font-size: 1.4rem; font-weight: 600; margin: 0.5rem 0; background: var(--bg); padding: 0.3rem 0.8rem; border-radius: 6px; display: inline-block; }
+    .grid-cell {
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      font-size: 1.8rem; border-radius: 8px; background: var(--surface); border: 1px solid var(--border);
+      user-select: none; transition: background 0.2s;
+    }
+    .grid-cell.selected { background: #d3f9d8; border-color: var(--success); box-shadow: 0 0 0 2px var(--success); }
+    .dropzone {
+      border: 2px dashed var(--border); border-radius: 8px; display: flex; align-items: center; justify-content: center;
+      color: #94a3b8; font-size: 0.9rem; background: rgba(0,0,0,0.02); min-width: 80px; min-height: 80px;
+    }
+    .construction-zone {
+      position: relative; width: 100%; height: 350px; background: #f9fafb;
+      border: 2px dashed var(--border); border-radius: var(--radius); overflow: hidden; touch-action: none;
+    }
+    .palette-item {
+      width: 50px; height: 50px; border-radius: 8px; cursor: grab; display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1); transition: transform 0.2s;
+    }
+    .shape-on-zone { position: absolute; cursor: move; border: 1px solid rgba(0,0,0,0.2); touch-action: none; }
+    .stat-container { position: relative; height: 300px; margin: 1rem 0; }
+    canvas { touch-action: none; display: block; }
+    .score-badge {
+      display: inline-block; padding: 0.2rem 0.6rem; border-radius: 20px; font-weight: bold;
+      background: var(--primary); color: white; font-size: 0.8rem;
+    }
+    .category-card {
+      background: var(--surface); border-radius: var(--radius); padding: 1rem; margin: 0.5rem;
+      border: 1px solid var(--border); box-shadow: var(--shadow);
+    }
+  </style>
+</head>
+<body class="light">
+  <div class="app-shell" id="app"></div>
+  <script>
+    // ========== APP CORE ==========
+    const App = {
+      currentUser: null,
+      settings: { theme:'light', fontSize:'normal', fontFamily:'Inter', soundEnabled:true },
+      audioCtx: null,
+      getUsers() { return JSON.parse(localStorage.getItem('ergoeval_users')||'[]'); },
+      saveUsers(u) { localStorage.setItem('ergoeval_users', JSON.stringify(u)); },
+      getSessions(uid) { return JSON.parse(localStorage.getItem('ergoeval_sessions')||'[]').filter(s=>s.userId==uid); },
+      saveSession(s) {
+        const all = JSON.parse(localStorage.getItem('ergoeval_sessions')||'[]');
+        s.id = Date.now().toString(); all.push(s);
+        localStorage.setItem('ergoeval_sessions', JSON.stringify(all));
+      },
+      applySettings() {
+        document.body.className = this.settings.theme;
+        document.documentElement.style.setProperty('--font-family', this.settings.fontFamily);
+        const sizes = { normal:'16px', large:'20px', xlarge:'24px' };
+        document.documentElement.style.setProperty('--font-size', sizes[this.settings.fontSize]||'16px');
+      },
+      loadSettings() {
+        Object.assign(this.settings, JSON.parse(localStorage.getItem('ergoeval_settings')||'{}'));
+        this.applySettings();
+      },
+      saveSettings() {
+        localStorage.setItem('ergoeval_settings', JSON.stringify(this.settings));
+        this.applySettings();
+      },
+      beep(freq, dur) {
+        if(!this.settings.soundEnabled) return;
+        try {
+          if(!this.audioCtx) this.audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+          const o = this.audioCtx.createOscillator(), g = this.audioCtx.createGain();
+          o.type='sine'; o.frequency.value=freq; g.gain.value=0.08;
+          o.connect(g); g.connect(this.audioCtx.destination);
+          o.start(); setTimeout(()=>o.stop(), dur);
+        } catch(e){}
+      },
+      render(html) { document.getElementById('app').innerHTML = html; this.applySettings(); }
+    };
+
+    // ========== NAVIGATION ==========
+    function showLogin() {
+      const users = App.getUsers();
+      App.render(`
+        <div class="top-nav"><span class="logo">🧠 ErgoEval Pro</span><span>Bilan numérique pour enfants Dys</span></div>
+        <div class="card">
+          <h2>Profil</h2>
+          <select id="userSelect" style="width:100%; margin-bottom:1rem;"><option value="">-- Choisir un profil --</option>
+            ${users.map(u=>`<option value="${u.id}">${u.nom} (${u.age} ans, ${u.groupe})</option>`).join('')}
+          </select>
+          <button class="btn" onclick="selectUser()">📂 Ouvrir</button>
+          <hr style="margin:1rem 0"><h3>Nouveau profil</h3>
+          <div class="grid" style="grid-template-columns:1fr auto auto auto;">
+            <input id="newNom" placeholder="Nom complet">
+            <input type="number" id="newAge" placeholder="Âge" min="3" max="18" value="8">
+            <select id="newGroupe"><option value="dyslexie">Dyslexie</option><option value="dyspraxie">Dyspraxie</option><option value="dyscalculie">Dyscalculie</option><option value="mixte">Mixte</option></select>
+            <button class="btn" onclick="createUser()">➕ Créer</button>
+          </div>
+        </div>
+      `);
+    }
+
+    function showDashboard() {
+      if(!App.currentUser) return showLogin();
+      const sessions = App.getSessions(App.currentUser.id);
+      const hist = sessions.length ? sessions.map(s=>`<div style="padding:0.3rem; background:var(--bg); border-radius:6px; margin:0.2rem 0">${s.epreuve} (${s.mode}) – ${new Date(s.date).toLocaleDateString()} – ${JSON.stringify(s.score)}</div>`).join('') : '<em>Aucune épreuve</em>';
+      App.render(`
+        <div class="top-nav">
+          <span class="logo">🧠 ErgoEval Pro</span>
+          <button class="btn" onclick="showEpreuves()">🧪 Épreuves</button>
+          <button class="btn" onclick="showRapport()">📊 Rapport détaillé</button>
+          <button class="btn secondary" onclick="openSettings()">⚙️ Paramètres</button>
+          <button class="btn secondary" onclick="showInfo()">ℹ️ Notation</button>
+          <button class="btn secondary" onclick="logout()">↩️ Déconnexion</button>
+        </div>
+        <div class="card">
+          <h2>👤 ${App.currentUser.nom} (${App.currentUser.age} ans, ${App.currentUser.groupe})</h2>
+          <h3>Historique</h3><div style="max-height:400px; overflow-y:auto;">${hist}</div>
+        </div>
+      `);
+    }
+
+    function showEpreuves() {
+      App.render(`
+        <div class="top-nav"><span class="logo">🧠 ErgoEval Pro</span><button class="btn" onclick="showDashboard()">🏠 Accueil</button></div>
+        <div class="card"><h2>📋 Épreuves</h2>
+          <div class="grid">
+            <button class="btn" onclick="Epreuves.Pointage.start()">🎯 Pointage</button>
+            <button class="btn" onclick="Epreuves.GlisserDeposer.start()">🖐️ Glisser-déposer</button>
+            <button class="btn" onclick="Epreuves.DoubleClic.start()">🖱️ Double-clic</button>
+            <button class="btn" onclick="Epreuves.Dictee.start()">🔢 Dictée</button>
+            <button class="btn" onclick="Epreuves.CalculMental.start()">🧮 Calcul</button>
+            <button class="btn" onclick="Epreuves.Problemes.start()">📝 Problèmes</button>
+            <button class="btn" onclick="Epreuves.CopieTexte.start()">✍️ Copie</button>
+            <button class="btn" onclick="Epreuves.Barrage.start()">🔍 Barrage</button>
+            <button class="btn" onclick="Epreuves.Assemblage.start()">🧩 Assemblage</button>
+            <button class="btn" onclick="Epreuves.TracePrecision.start()">✏️ Tracé</button>
+            <button class="btn" onclick="Epreuves.PointsARelier.start()">🔗 Points</button>
+            <button class="btn" onclick="Epreuves.PerceptionVisuelle.start()">👁️ Perception</button>
+            <button class="btn" onclick="Epreuves.TrailMaking.start()">🔀 Trail</button>
+          </div>
+        </div>
+      `);
+    }
+
+    function showInfo() {
+      App.render(`
+        <div class="top-nav"><span class="logo">ℹ️ Barème de notation</span><button class="btn secondary" onclick="showDashboard()">Retour</button></div>
+        <div class="card">
+          <h2>Comment sont calculées les notes sur 10 ?</h2>
+          <p>Chaque épreuve donne un score brut, transformé en note /10 selon les règles suivantes :</p>
+          <ul style="margin-top:1rem; line-height:2;">
+            <li><b>Pointage de cibles</b> : 70% précision (hits/total) + 30% vitesse (10 - temps/3)</li>
+            <li><b>Glisser-déposer</b> : 10 - (temps/5) - (erreurs×2)</li>
+            <li><b>Double-clic / Clic droit</b> : 10 - (temps/3)</li>
+            <li><b>Dictée de nombres</b> : (bonnes réponses / total) × 10</li>
+            <li><b>Calcul mental</b> : (bonnes réponses / total) × 10</li>
+            <li><b>Problèmes</b> : (bonnes réponses / total) × 10</li>
+            <li><b>Copie de texte</b> : vitesse (mots/min) / 20 × 10, pondérée par la précision (1 - erreurs/10)</li>
+            <li><b>Barrage visuel</b> : (cloches trouvées / total) × 10 - (fausses alarmes × 1.5)</li>
+            <li><b>Assemblage de formes</b> : 10 - (temps/15) - (écart au nombre idéal de formes × 2)</li>
+            <li><b>Tracé de précision</b> : 10 - (temps/25) - (sorties × 1.5)</li>
+            <li><b>Points à relier</b> : 10 - (temps/8) - (erreurs × 2)</li>
+            <li><b>Perception visuelle</b> : (bonnes réponses / total) × 10</li>
+            <li><b>Trail Making</b> : 10 - (temps/10) - (erreurs × 2)</li>
+          </ul>
+          <p style="margin-top:1rem;">Les catégories (Logique, Calcul, Frappe clavier, Visuo-spatiale) sont les moyennes des notes des épreuves correspondantes.</p>
+        </div>
+      `);
+    }
+
+    function selectUser() {
+      const id = document.getElementById('userSelect').value;
+      if(!id) return alert('Choisissez un profil.');
+      App.currentUser = App.getUsers().find(u=>u.id==id);
+      localStorage.setItem('ergoeval_lastUser', App.currentUser.id);
+      showDashboard();
+    }
+    function createUser() {
+      const nom = document.getElementById('newNom').value.trim();
+      const age = parseInt(document.getElementById('newAge').value);
+      const groupe = document.getElementById('newGroupe').value;
+      if(!nom || !age) return alert('Nom et âge requis.');
+      const users = App.getUsers();
+      const newUser = { id: Date.now().toString(), nom, age, groupe };
+      users.push(newUser); App.saveUsers(users);
+      App.currentUser = newUser;
+      localStorage.setItem('ergoeval_lastUser', newUser.id);
+      showDashboard();
+    }
+    function logout() { App.currentUser = null; localStorage.removeItem('ergoeval_lastUser'); showLogin(); }
+    function openSettings() {
+      const s = App.settings;
+      App.render(`
+        <div class="top-nav"><span class="logo">Paramètres</span><button class="btn secondary" onclick="showDashboard()">Retour</button></div>
+        <div class="card">
+          <label>Thème : <select onchange="updateSetting('theme',this.value)">
+            <option value="light" ${s.theme=='light'?'selected':''}>Clair</option>
+            <option value="dark" ${s.theme=='dark'?'selected':''}>Sombre</option>
+          </select></label>
+          <label>Police : <select onchange="updateSetting('fontFamily',this.value)">
+            <option value="Inter" ${s.fontFamily=='Inter'?'selected':''}>Inter</option>
+            <option value="'OpenDyslexic', sans-serif" ${s.fontFamily.includes('OpenDyslexic')?'selected':''}>OpenDyslexic</option>
+          </select></label>
+          <label>Taille : <select onchange="updateSetting('fontSize',this.value)">
+            <option value="normal" ${s.fontSize=='normal'?'selected':''}>Normal</option>
+            <option value="large" ${s.fontSize=='large'?'selected':''}>Grand</option>
+            <option value="xlarge" ${s.fontSize=='xlarge'?'selected':''}>Très grand</option>
+          </select></label>
+          <label>Sons : <input type="checkbox" ${s.soundEnabled?'checked':''} onchange="updateSetting('soundEnabled',this.checked)"></label>
+        </div>
+      `);
+    }
+    function updateSetting(k,v) { if(k==='soundEnabled') v = v===true||v==='true'; App.settings[k]=v; App.saveSettings(); }
+
+    // ========== CATÉGORIES ET SCORES ==========
+    const CATEGORIES = {
+      'Logique': ['Trail Making', 'Barrage visuel', 'Points à relier'],
+      'Calcul': ['Calcul mental', 'Problèmes', 'Dictée de nombres'],
+      'Frappe clavier': ['Copie de texte', 'Double-clic / Clic droit', 'Glisser-déposer'],
+      'Visuo-spatiale': ['Pointage de cibles', 'Assemblage de formes', 'Tracé de précision', 'Perception visuelle']
+    };
+
+    function normaliserScore(epreuve, score) {
+      if(!score) return 0;
+      switch(epreuve) {
+        case 'Pointage de cibles': {
+          const precision = score.precision || 0;
+          const temps = parseFloat(score.totalSec) || 60;
+          const rapidite = Math.max(0, 10 - (temps / 3));
+          return Math.min(10, (precision / 10) * 0.7 + rapidite * 0.3);
+        }
+        case 'Glisser-déposer': {
+          const temps = parseFloat(score.temps) || 30;
+          const erreurs = score.erreurs || 0;
+          return Math.max(0, 10 - (temps / 5) - (erreurs * 2));
+        }
+        case 'Double-clic / Clic droit': {
+          const temps = parseFloat(score.temps) || 20;
+          return Math.max(0, 10 - (temps / 3));
+        }
+        case 'Dictée de nombres': {
+          const correct = score.correct || 0;
+          const total = score.total || 10;
+          return (correct / total) * 10;
+        }
+        case 'Calcul mental': {
+          const correct = score.correct || 0;
+          const total = score.total || 6;
+          return (correct / total) * 10;
+        }
+        case 'Problèmes': {
+          const correct = score.correct || 0;
+          const total = score.total || 4;
+          return (correct / total) * 10;
+        }
+        case 'Copie de texte': {
+          const wpm = score.wpm || 0;
+          const erreurs = score.erreurs || 0;
+          const precision = Math.max(0, 1 - erreurs / 10); // 0 erreur => 1, 10 erreurs => 0
+          return Math.min(10, (wpm / 20) * 10 * precision);
+        }
+        case 'Barrage visuel': {
+          const trouvees = score.trouvees || 0;
+          const cibles = score.cibles || 25;
+          const fausses = score.fausses || 0;
+          const exactitude = (trouvees / cibles) * 10;
+          const penalite = fausses * 1.5;
+          return Math.max(0, exactitude - penalite);
+        }
+        case 'Assemblage de formes': {
+          const temps = parseFloat(score.temps) || 30;
+          const formes = score.formes || 0;
+          return Math.max(0, 10 - (temps / 15) - Math.abs(3 - formes) * 2);
+        }
+        case 'Tracé de précision': {
+          const temps = parseFloat(score.temps) || 30;
+          const sorties = score.sorties || 0;
+          return Math.max(0, 10 - (temps / 25) - (sorties * 1.5));
+        }
+        case 'Points à relier': {
+          const temps = parseFloat(score.temps) || 30;
+          const erreurs = score.erreurs || 0;
+          return Math.max(0, 10 - (temps / 8) - (erreurs * 2));
+        }
+        case 'Perception visuelle': {
+          const correct = score.correct || 0;
+          const total = score.total || 10;
+          return (correct / total) * 10;
+        }
+        case 'Trail Making': {
+          const temps = parseFloat(score.temps) || 30;
+          const erreurs = score.erreurs || 0;
+          return Math.max(0, 10 - (temps / 10) - (erreurs * 2));
+        }
+        default: return 0;
+      }
+    }
+
+    function calculerNotes(sessions) {
+      const notesParEpreuve = {};
+      sessions.forEach(s => {
+        if(!notesParEpreuve[s.epreuve]) notesParEpreuve[s.epreuve] = [];
+        notesParEpreuve[s.epreuve].push(normaliserScore(s.epreuve, s.score));
+      });
+      const moyenneEpreuve = {};
+      for(const [ep, notes] of Object.entries(notesParEpreuve)) {
+        moyenneEpreuve[ep] = notes.reduce((a,b)=>a+b,0) / notes.length;
+      }
+      const categories = {};
+      for(const [cat, epreuves] of Object.entries(CATEGORIES)) {
+        let somme = 0, nb = 0;
+        epreuves.forEach(ep => {
+          if(moyenneEpreuve[ep] !== undefined) { somme += moyenneEpreuve[ep]; nb++; }
+        });
+        categories[cat] = nb > 0 ? somme / nb : 0;
+      }
+      return { parEpreuve: moyenneEpreuve, categories };
+    }
+
+    function showRapport() {
+      if(!App.currentUser) return showLogin();
+      const sessions = App.getSessions(App.currentUser.id);
+      if(!sessions.length) {
+        App.render(`<div class="card"><h2>📊 Rapport</h2><p>Aucune épreuve réalisée.</p><button class="btn" onclick="showDashboard()">Retour</button></div>`);
+        return;
+      }
+      const { parEpreuve, categories } = calculerNotes(sessions);
+      let htmlEpreuves = '';
+      for(const [ep, note] of Object.entries(parEpreuve)) {
+        const color = note >= 7 ? 'var(--success)' : note >= 4 ? 'var(--warning)' : 'var(--danger)';
+        htmlEpreuves += `<div style="display:flex; justify-content:space-between; margin:0.3rem 0;">
+          <span>${ep}</span><span class="score-badge" style="background:${color}">${note.toFixed(1)}/10</span></div>`;
+      }
+      let htmlCategories = '';
+      for(const [cat, note] of Object.entries(categories)) {
+        const color = note >= 7 ? 'var(--success)' : note >= 4 ? 'var(--warning)' : 'var(--danger)';
+        htmlCategories += `<div class="category-card" style="border-left: 4px solid ${color}">
+          <strong>${cat}</strong> : <span style="font-size:1.2rem; font-weight:bold;">${note.toFixed(1)}/10</span>
+          <p style="font-size:0.9rem; margin-top:0.5rem;">${note >= 7 ? '✅ Facilité' : note >= 4 ? '⚠️ Difficulté modérée' : '❌ Difficulté importante'}</p>
+        </div>`;
+      }
+      App.render(`
+        <div class="top-nav"><span class="logo">Rapport détaillé</span><button class="btn secondary" onclick="showDashboard()">Retour</button></div>
+        <div class="card">
+          <h2>📊 Notes par épreuve</h2>${htmlEpreuves}
+          <hr style="margin:1rem 0"><h2>📂 Catégories</h2>
+          <div class="grid" style="grid-template-columns:1fr 1fr;">${htmlCategories}</div>
+          <div class="stat-container" style="height:300px; margin-top:1rem;"><canvas id="radarChart"></canvas></div>
+        </div>
+      `);
+      setTimeout(()=>{
+        const ctx = document.getElementById('radarChart')?.getContext('2d');
+        if(ctx) new Chart(ctx, {
+          type: 'radar',
+          data: {
+            labels: Object.keys(categories),
+            datasets: [{
+              label: 'Score /10',
+              data: Object.values(categories),
+              backgroundColor: 'rgba(59,130,246,0.2)',
+              borderColor: '#3b82f6',
+              pointBackgroundColor: '#3b82f6'
+            }]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            scales: { r: { beginAtZero: true, max: 10, ticks: { stepSize: 2 } } },
+            plugins: { tooltip: { callbacks: { label: (ctx) => `${ctx.raw.toFixed(1)}/10` } } }
+          }
+        });
+      },100);
+    }
+
+    // ========== EPREUVES ==========
+    class Epreuve {
+      constructor(nom, mode='numerique') {
+        this.nom = nom; this.mode = mode;
+        this.session = { userId:App.currentUser.id, date:new Date().toISOString(), epreuve:nom, mode, score:{} };
+        this.startTime = Date.now();
+      }
+      finish() { App.saveSession(this.session); }
+    }
+
+    const Epreuves = {
+      Pointage: {
+        start() {
+          if(!App.currentUser) return alert('Profil requis.');
+          const self = this;
+          const state = { running:false, targetCount:20, current:0, hits:0, misses:0, startTime:0, times:[], sizes:[30,45,60,75], target:null, interval:null };
+          const epreuve = new Epreuve('Pointage de cibles');
+          App.render(`
+            <div class="top-nav"><span class="logo">Pointage</span><button class="btn secondary" onclick="Epreuves.Pointage.cleanup()">Annuler</button></div>
+            <div class="card"><h2>🎯 Pointage de cibles</h2><p>Cliquez sur les cibles rouges aussi vite que possible.</p>
+              <div class="timer" id="timer">00:00</div><div class="game-area" id="gameArea"></div>
+              <button class="btn" id="startBtn" onclick="Epreuves.Pointage.demarrer()">Démarrer</button>
+            </div>
+          `);
+          const area = document.getElementById('gameArea');
+          area.addEventListener('click', (e)=>self.handleClick(e, state));
+          area.addEventListener('touchstart', (e)=>{ e.preventDefault(); self.handleClick(e.touches[0], state); }, {passive:false});
+          self.state = state; self.epreuve = epreuve;
+        },
+        demarrer() {
+          this.state.running = true; this.state.startTime = Date.now();
+          document.getElementById('startBtn').disabled = true;
+          this.nextTarget();
+          this.state.interval = setInterval(()=>{
+            if(!this.state.running) return;
+            const elapsed = Math.floor((Date.now()-this.state.startTime)/1000);
+            document.getElementById('timer').textContent = `${Math.floor(elapsed/60).toString().padStart(2,'0')}:${(elapsed%60).toString().padStart(2,'0')}`;
+          }, 200);
+        },
+        nextTarget() {
+          const s = this.state;
+          if(s.current >= s.targetCount) { this.terminer(); return; }
+          if(s.target) s.target.remove();
+          const area = document.getElementById('gameArea');
+          const size = s.sizes[Math.floor(Math.random()*s.sizes.length)];
+          const rect = area.getBoundingClientRect();
+          const x = Math.random()*(rect.width-size-4); const y = Math.random()*(rect.height-size-4);
+          const t = document.createElement('div'); t.className='target';
+          t.style.width=size+'px'; t.style.height=size+'px'; t.style.left=x+'px'; t.style.top=y+'px';
+          t.dataset.timeStart = Date.now();
+          area.appendChild(t); s.target = t;
+        },
+        handleClick(e, s) {
+          if(!s.running || !s.target) return;
+          const t = s.target; const rect = t.getBoundingClientRect();
+          const cx = rect.left+rect.width/2, cy = rect.top+rect.height/2;
+          const dist = Math.hypot(e.clientX-cx, e.clientY-cy);
+          const hit = dist <= rect.width/2; const now = Date.now();
+          s.times.push(now - parseInt(t.dataset.timeStart));
+          if(!hit) {
+            s.misses++; App.beep(200,300);
+            t.style.background = 'radial-gradient(circle, #f59e0b, #d97706)'; t.dataset.timeStart = now;
+          } else {
+            s.hits++; t.classList.add('clicked'); App.beep(500,150);
+            s.current++; setTimeout(()=>this.nextTarget(), 300);
+          }
+        },
+        terminer() {
+          const s = this.state; s.running = false; clearInterval(s.interval);
+          if(s.target) s.target.remove();
+          const total = (Date.now()-s.startTime)/1000;
+          const avg = s.times.reduce((a,b)=>a+b,0)/s.times.length || 0;
+          const prec = s.hits/(s.hits+s.misses)*100 || 0;
+          this.epreuve.session.score = { hits:s.hits, misses:s.misses, precision:Math.round(prec), avgMs:Math.round(avg), totalSec:total.toFixed(1) };
+          this.epreuve.finish();
+          App.render(`<div class="card"><h2>Résultat</h2><p>Cibles: ${s.hits}/${s.targetCount}, Précision: ${prec.toFixed(1)}%, Temps: ${total.toFixed(1)}s</p><button class="btn" onclick="showEpreuves()">Retour</button></div>`);
+        },
+        cleanup() { clearInterval(this.state?.interval); showEpreuves(); }
+      },
+
+      GlisserDeposer: {
+        start() {
+          if(!App.currentUser) return alert('Profil requis.');
+          const items = ['🟥','🟢','🔺']; const targets = ['Carré','Rond','Triangle'];
+          const state = { current:0, errors:0, startTime:Date.now(), interval:null };
+          const epreuve = new Epreuve('Glisser-déposer');
+          App.render(`
+            <div class="top-nav"><span class="logo">Glisser-déposer</span><button class="btn secondary" onclick="Epreuves.GlisserDeposer.cleanup()">Annuler</button></div>
+            <div class="card"><h2>🖐️ Glisser-déposer</h2><p>Déposez chaque forme dans la bonne boîte.</p>
+              <div class="timer" id="timer">00:00</div>
+              <div style="display:flex; justify-content:space-around; margin:1rem 0;">
+                <div id="sources" style="display:flex; gap:1rem;"></div>
+                <div id="targets" style="display:flex; gap:1rem;"></div>
+              </div>
+            </div>
+          `);
+          const srcDiv = document.getElementById('sources'); const tgtDiv = document.getElementById('targets');
+          items.forEach((shape, i) => {
+            const src = document.createElement('div'); src.textContent=shape; src.style.fontSize='3rem'; src.draggable=true;
+            src.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain', i.toString()));
+            srcDiv.appendChild(src);
+            const tgt = document.createElement('div'); tgt.className='dropzone'; tgt.textContent=targets[i];
+            tgt.addEventListener('dragover', e=>e.preventDefault());
+            tgt.addEventListener('drop', e=>{
+              e.preventDefault();
+              const idx = parseInt(e.dataTransfer.getData('text/plain'));
+              if(idx === i) {
+                state.current++; App.beep(600,150);
+                if(state.current === items.length) Epreuves.GlisserDeposer.terminer();
+                else { src.remove(); tgt.style.background='#d1fae5'; }
+              } else { state.errors++; App.beep(200,300); }
+            });
+            tgtDiv.appendChild(tgt);
+          });
+          state.interval = setInterval(()=>{
+            const elapsed = Math.floor((Date.now()-state.startTime)/1000);
+            document.getElementById('timer').textContent = `${Math.floor(elapsed/60).toString().padStart(2,'0')}:${(elapsed%60).toString().padStart(2,'0')}`;
+          },200);
+          this.state = state; this.epreuve = epreuve;
+        },
+        terminer() {
+          clearInterval(this.state.interval);
+          const total = (Date.now()-this.state.startTime)/1000;
+          this.epreuve.session.score = { items:3, temps:total.toFixed(1), erreurs:this.state.errors };
+          this.epreuve.finish();
+          App.render(`<div class="card"><h2>Terminé</h2><p>Temps: ${total.toFixed(1)}s, Erreurs: ${this.state.errors}</p><button class="btn" onclick="showEpreuves()">Retour</button></div>`);
+        },
+        cleanup() { clearInterval(this.state?.interval); showEpreuves(); }
+      },
+
+      DoubleClic: {
+        start() {
+          if(!App.currentUser) return alert('Profil requis.');
+          const essais = [
+            {type:'double', consigne:'Double-cliquez sur le dossier', icon:'📁'},
+            {type:'right', consigne:'Faites un clic droit sur l\'étoile', icon:'⭐'},
+            {type:'double', consigne:'Double-cliquez sur le livre', icon:'📚'},
+            {type:'right', consigne:'Faites un clic droit sur le soleil', icon:'☀️'}
+          ];
+          const state = { essais, current:0, times:[], startTime:Date.now() };
+          const epreuve = new Epreuve('Double-clic / Clic droit');
+          App.render(`
+            <div class="top-nav"><span class="logo">Double-clic</span><button class="btn secondary" onclick="showEpreuves()">Annuler</button></div>
+            <div class="card center"><h2>🖱️ Double-clic / Clic droit</h2>
+              <p id="consigne"></p><div id="icon" style="font-size:5rem; cursor:pointer;"></div>
+            </div>
+          `);
+          this.state = state; this.epreuve = epreuve; this.afficher();
+        },
+        afficher() {
+          const s = this.state;
+          if(s.current >= s.essais.length) { this.terminer(); return; }
+          const essai = s.essais[s.current];
+          document.getElementById('consigne').textContent = essai.consigne;
+          const icon = document.getElementById('icon'); icon.textContent = essai.icon;
+          icon.onclick = null; icon.ondblclick = null; icon.oncontextmenu = null;
+          if(essai.type === 'double') {
+            icon.ondblclick = (e) => { e.preventDefault(); s.times.push(Date.now()-s.startTime); s.current++; App.beep(600,150); this.afficher(); };
+          } else {
+            icon.oncontextmenu = (e) => { e.preventDefault(); s.times.push(Date.now()-s.startTime); s.current++; App.beep(600,150); this.afficher(); };
+          }
+        },
+        terminer() {
+          const total = (Date.now()-this.state.startTime)/1000;
+          this.epreuve.session.score = { essais:this.state.essais.length, temps:total.toFixed(1) };
+          this.epreuve.finish();
+          App.render(`<div class="card"><h2>Terminé</h2><p>Temps: ${total.toFixed(1)}s</p><button class="btn" onclick="showEpreuves()">Retour</button></div>`);
+        }
+      },
+
+      Dictee: {
+        start() {
+          if(!App.currentUser) return alert('Profil requis.');
+          const nombres = ['482','73','1056','29','630','8147','59','302','978','1500'];
+          const state = { nombres, current:0, responses:[] };
+          const epreuve = new Epreuve('Dictée de nombres');
+          App.render(`
+            <div class="top-nav"><span class="logo">Dictée</span><button class="btn secondary" onclick="showEpreuves()">Annuler</button></div>
+            <div class="card"><h2>🔢 Dictée de nombres</h2><p>Écoutez et tapez le nombre entendu.</p>
+              <div id="dnPlay" style="font-size:2rem; cursor:pointer;" onclick="Epreuves.Dictee.lire()">🔊</div>
+              <input id="dnInput" style="width:200px;"><button class="btn" onclick="Epreuves.Dictee.valider()">Valider</button>
+              <p id="dnProgress">1/${nombres.length}</p>
+            </div>
+          `);
+          this.state = state; this.epreuve = epreuve; this.lire();
+        },
+        lire() {
+          const nb = this.state.nombres[this.state.current];
+          if('speechSynthesis' in window) {
+            const u = new SpeechSynthesisUtterance(nb); u.lang='fr-FR'; u.rate=0.9; speechSynthesis.speak(u);
+          } else { document.getElementById('dnPlay').textContent = nb; }
+        },
+        valider() {
+          const s = this.state;
+          const val = document.getElementById('dnInput').value.trim();
+          const expected = s.nombres[s.current];
+          s.responses.push({ expected, given:val, correct:val===expected });
+          s.current++;
+          if(s.current >= s.nombres.length) {
+            const correct = s.responses.filter(r=>r.correct).length;
+            this.epreuve.session.score = { total:s.nombres.length, correct, erreurs:s.nombres.length-correct };
+            this.epreuve.finish();
+            App.render(`<div class="card"><h2>Résultat</h2><p>Correct: ${correct}/${s.nombres.length}</p><button class="btn" onclick="showEpreuves()">Retour</button></div>`);
+          } else {
+            document.getElementById('dnInput').value = '';
+            document.getElementById('dnProgress').textContent = `${s.current+1}/${s.nombres.length}`; this.lire();
+          }
+        }
+      },
+
+      // -------------------- CALCUL MENTAL (niveau CM2) --------------------
+      CalculMental: {
+        start() {
+          if(!App.currentUser) return alert('Profil requis.');
+          // Opérations plus difficiles adaptées au CM2
+          const ops = [
+            {q:'234 + 189', a:423},
+            {q:'125 × 4', a:500},
+            {q:'876 - 398', a:478},
+            {q:'45 × 12', a:540},
+            {q:'789 + 456', a:1245},
+            {q:'63 ÷ 7', a:9},
+            {q:'152 × 3', a:456},
+            {q:'1000 - 654', a:346}
+          ];
+          const state = { ops, current:0, responses:[] };
+          const epreuve = new Epreuve('Calcul mental');
+          App.render(`
+            <div class="top-nav"><span class="logo">Calcul</span><button class="btn secondary" onclick="showEpreuves()">Annuler</button></div>
+            <div class="card center"><h2>🧮 Calcul mental (CM2)</h2><p>Résolvez l'opération et validez.</p>
+              <div id="cmOp" style="font-size:2rem;"></div>
+              <input type="number" id="cmInput" style="width:120px;">
+              <button class="btn" onclick="Epreuves.CalculMental.valider()">Valider</button>
+              <p id="cmProgress">1/${ops.length}</p>
+            </div>
+          `);
+          this.state = state; this.epreuve = epreuve; this.afficher();
+        },
+        afficher() {
+          const s = this.state;
+          if(s.current >= s.ops.length) { this.terminer(); return; }
+          document.getElementById('cmOp').textContent = s.ops[s.current].q;
+          document.getElementById('cmInput').value = ''; document.getElementById('cmInput').focus();
+        },
+        valider() {
+          const s = this.state;
+          const val = parseInt(document.getElementById('cmInput').value);
+          const expected = s.ops[s.current].a;
+          s.responses.push({ expected, given:val, correct:val===expected });
+          s.current++;
+          if(s.current >= s.ops.length) this.terminer();
+          else { document.getElementById('cmProgress').textContent = `${s.current+1}/${s.ops.length}`; this.afficher(); }
+        },
+        terminer() {
+          const correct = this.state.responses.filter(r=>r.correct).length;
+          this.epreuve.session.score = { total:this.state.ops.length, correct, erreurs:this.state.ops.length-correct };
+          this.epreuve.finish();
+          App.render(`<div class="card"><h2>Résultat</h2><p>Correct: ${correct}/${this.state.ops.length}</p><button class="btn" onclick="showEpreuves()">Retour</button></div>`);
+        }
+      },
+
+      Problemes: {
+        start() {
+          if(!App.currentUser) return alert('Profil requis.');
+          const pb = [
+            {enonce:'Paul a 15 billes. Il en donne 6. Combien reste-t-il ?', rep:9},
+            {enonce:'Marie a 3 paquets de 4 bonbons. Combien ?', rep:12},
+            {enonce:'Un livre coûte 8€. Combien pour 5 ?', rep:40},
+            {enonce:'Bus : 24 passagers, 7 descendent. Restent ?', rep:17}
+          ];
+          const state = { pb, current:0, responses:[] };
+          const epreuve = new Epreuve('Problèmes');
+          App.render(`
+            <div class="top-nav"><span class="logo">Problèmes</span><button class="btn secondary" onclick="showEpreuves()">Annuler</button></div>
+            <div class="card"><h2>📝 Résolution de problèmes</h2>
+              <p id="pbEnonce" style="font-size:1.2rem;"></p>
+              <input type="number" id="pbInput" style="width:100px;">
+              <button class="btn" onclick="Epreuves.Problemes.valider()">Valider</button>
+              <p id="pbProgress">1/${pb.length}</p>
+            </div>
+          `);
+          this.state = state; this.epreuve = epreuve; this.afficher();
+        },
+        afficher() {
+          const s = this.state;
+          if(s.current >= s.pb.length) { this.terminer(); return; }
+          document.getElementById('pbEnonce').textContent = s.pb[s.current].enonce;
+          document.getElementById('pbInput').value = '';
+        },
+        valider() {
+          const s = this.state;
+          const val = parseInt(document.getElementById('pbInput').value);
+          s.responses.push({ expected:s.pb[s.current].rep, given:val, correct:val===s.pb[s.current].rep });
+          s.current++;
+          if(s.current >= s.pb.length) this.terminer();
+          else { document.getElementById('pbProgress').textContent = `${s.current+1}/${s.pb.length}`; this.afficher(); }
+        },
+        terminer() {
+          const correct = this.state.responses.filter(r=>r.correct).length;
+          this.epreuve.session.score = { total:this.state.pb.length, correct, erreurs:this.state.pb.length-correct };
+          this.epreuve.finish();
+          App.render(`<div class="card"><h2>Résultat</h2><p>Correct: ${correct}/${this.state.pb.length}</p><button class="btn" onclick="showEpreuves()">Retour</button></div>`);
+        }
+      },
+
+      CopieTexte: {
+        start() {
+          App.render(`
+            <div class="top-nav"><span class="logo">Copie</span><button class="btn secondary" onclick="showEpreuves()">Annuler</button></div>
+            <div class="card"><h2>✍️ Copie de texte</h2>
+              <button class="btn" onclick="Epreuves.CopieTexte.numerique()">💻 Numérique</button>
+              <button class="btn" onclick="Epreuves.CopieTexte.papier()">📄 Papier</button>
+            </div>
+          `);
+        },
+        numerique() {
+          const texte = "Le petit chat dort sur le tapis rouge. Il fait un rêve étrange où il court après une souris verte.";
+          const state = { texte, corrections:0, startTime:null, interval:null };
+          const epreuve = new Epreuve('Copie de texte');
+          App.render(`
+            <div class="card"><h2>Copie numérique</h2><p>Recopiez le texte ci-dessous. Appuyez sur <b>Entrée</b> ou cliquez sur <b>Valider</b> pour terminer.</p>
+              <blockquote style="background:var(--bg); padding:1rem; border-radius:8px;">${texte}</blockquote>
+              <textarea id="ctInput" rows="4" style="width:100%" disabled placeholder="Cliquez sur Démarrer puis tapez..."></textarea>
+              <div class="timer" id="timer">00:00</div>
+              <button class="btn" id="startBtn" onclick="Epreuves.CopieTexte.demarrerNum()">Démarrer</button>
+              <button class="btn success" id="submitBtn" onclick="Epreuves.CopieTexte.validerNum()" disabled>Valider</button>
+              <button class="btn secondary" onclick="showEpreuves()">Annuler</button>
+            </div>
+          `);
+          window._ctState = state; window._ctEpreuve = epreuve;
+        },
+        demarrerNum() {
+          const state = window._ctState;
+          state.startTime = Date.now();
+          document.getElementById('ctInput').disabled = false;
+          document.getElementById('ctInput').focus();
+          document.getElementById('startBtn').disabled = true;
+          document.getElementById('submitBtn').disabled = false;
+          document.getElementById('ctInput').addEventListener('keydown', (e) => {
+            if(e.key === 'Backspace') state.corrections++;
+            if(e.key === 'Enter') {
+              e.preventDefault();
+              Epreuves.CopieTexte.validerNum();
+            }
+          });
+          state.interval = setInterval(()=>{
+            const elapsed = Math.floor((Date.now()-state.startTime)/1000);
+            document.getElementById('timer').textContent = `${Math.floor(elapsed/60).toString().padStart(2,'0')}:${(elapsed%60).toString().padStart(2,'0')}`;
+          },200);
+          setTimeout(() => {
+            if(window._ctState) Epreuves.CopieTexte.validerNum();
+          }, 300000);
+        },
+        validerNum() {
+          if(!window._ctState || !window._ctState.startTime) return;
+          clearInterval(window._ctState.interval);
+          const texteOriginal = window._ctState.texte;
+          const texteSaisi = document.getElementById('ctInput').value.trim();
+          const temps = (Date.now() - window._ctState.startTime) / 1000;
+          const motsOriginaux = texteOriginal.split(/\s+/).filter(m=>m.length>0);
+          const motsSaisis = texteSaisi.split(/\s+/).filter(m=>m.length>0);
+          const nbMots = motsSaisis.length;
+          const wpm = nbMots / (temps / 60);
+          // Calcul d'erreur : comparer les mots, mais aussi les caractères
+          let erreurs = 0;
+          const maxLen = Math.max(motsOriginaux.length, motsSaisis.length);
+          for(let i=0; i<maxLen; i++) {
+            if(motsOriginaux[i] !== motsSaisis[i]) erreurs++;
+          }
+          // On ajoute aussi les corrections (backspaces) comme indicateur
+          erreurs += window._ctState.corrections;
+          window._ctEpreuve.session.score = { mots:nbMots, temps:temps.toFixed(1), wpm:Math.round(wpm), erreurs };
+          window._ctEpreuve.finish();
+          App.render(`<div class="card"><h2>Résultat Copie</h2>
+            <p>Mots : ${nbMots} en ${temps.toFixed(1)}s (${Math.round(wpm)} mots/min)</p>
+            <p>Erreurs (différences + corrections) : ${erreurs}</p>
+            <button class="btn" onclick="showEpreuves()">Retour</button></div>`);
+          delete window._ctState; delete window._ctEpreuve;
+        },
+        papier() {
+          App.render(`
+            <div class="card"><h2>Copie papier</h2>
+              <p>Faites copier le texte suivant :</p>
+              <blockquote style="background:var(--bg); padding:1rem; border-radius:8px;">Le petit chat dort sur le tapis rouge. Il fait un rêve étrange où il court après une souris verte.</blockquote>
+              <label>Nombre de caractères produits : <input type="number" id="papChars" min="0"></label>
+              <label>Nombre d'erreurs : <input type="number" id="papErr" min="0"></label>
+              <button class="btn" onclick="Epreuves.CopieTexte.enregPapier()">Enregistrer</button>
+              <button class="btn secondary" onclick="showEpreuves()">Annuler</button>
+            </div>`);
+        },
+        enregPapier() {
+          const chars = parseInt(document.getElementById('papChars').value)||0;
+          const err = parseInt(document.getElementById('papErr').value)||0;
+          const session = new Epreuve('Copie de texte', 'papier');
+          session.session.score = { caracteres:chars, erreurs:err };
+          session.finish();
+          App.render(`<div class="card"><h2>Enregistré</h2><button class="btn" onclick="showEpreuves()">Retour</button></div>`);
+        }
+      },
+
+      Barrage: {
+        start() {
+          if(!App.currentUser) return alert('Profil requis.');
+          const icons = ['🔔','🚗','🏠','🌙'];
+          let grid = [];
+          for(let i=0;i<100;i++) grid.push(Math.random()<0.25 ? icons[0] : icons[Math.floor(Math.random()*3)+1]);
+          const state = { grid, cibles:grid.filter(g=>g===icons[0]).length, trouvees:0, fausses:0, startTime:Date.now(), interval:null };
+          const epreuve = new Epreuve('Barrage visuel');
+          App.render(`
+            <div class="top-nav"><span class="logo">Barrage</span><button class="btn secondary" onclick="showEpreuves()">Annuler</button></div>
+            <div class="card"><h2>🔍 Barrage visuel</h2><p>Cliquez sur toutes les cloches 🔔, puis "Terminé".</p>
+              <div class="timer" id="timer">00:00</div>
+              <div id="bvGrid" style="display:grid; grid-template-columns:repeat(10,1fr); gap:4px;"></div>
+              <button class="btn success" onclick="Epreuves.Barrage.terminer()">✅ Terminé</button>
+            </div>
+          `);
+          const gridEl = document.getElementById('bvGrid');
+          grid.forEach((icon, idx) => {
+            const cell = document.createElement('div'); cell.className='grid-cell'; cell.textContent=icon;
+            cell.addEventListener('click', ()=>{
+              if(cell.classList.contains('selected')) {
+                cell.classList.remove('selected');
+                if(icon===icons[0]) state.trouvees--; else state.fausses--;
+              } else {
+                cell.classList.add('selected');
+                if(icon===icons[0]) state.trouvees++; else state.fausses++;
+              }
+            });
+            gridEl.appendChild(cell);
+          });
+          state.interval = setInterval(()=>{
+            const elapsed = Math.floor((Date.now()-state.startTime)/1000);
+            document.getElementById('timer').textContent = `${Math.floor(elapsed/60).toString().padStart(2,'0')}:${(elapsed%60).toString().padStart(2,'0')}`;
+          },200);
+          window._bvState = state; window._bvEpreuve = epreuve;
+        },
+        terminer() {
+          clearInterval(window._bvState.interval);
+          const s = window._bvState; const temps = (Date.now()-s.startTime)/1000;
+          window._bvEpreuve.session.score = { cibles:s.cibles, trouvees:s.trouvees, fausses:s.fausses, temps:temps.toFixed(1) };
+          window._bvEpreuve.finish();
+          App.render(`<div class="card"><h2>Résultat</h2><p>Trouvées: ${s.trouvees}/${s.cibles}, Fausses: ${s.fausses}</p><button class="btn" onclick="showEpreuves()">Retour</button></div>`);
+        }
+      },
+
+      Assemblage: {
+        start() {
+          if(!App.currentUser) return alert('Profil requis.');
+          const state = { formes: [], startTime: Date.now() };
+          const epreuve = new Epreuve('Assemblage de formes');
+          App.render(`
+            <div class="card"><h2>🧩 Assemblage de formes</h2><p>Glissez les formes pour reproduire la maison. Vous pouvez déplacer les formes déjà placées.</p>
+              <div style="display:flex; gap:1rem;">
+                <div><strong>Modèle</strong><svg width="120" height="120"><rect x="20" y="35" width="80" height="55" fill="none" stroke="black" stroke-width="2"/><polygon points="60,5 100,35 20,35" fill="none" stroke="black" stroke-width="2"/><circle cx="60" cy="60" r="15" fill="none" stroke="black" stroke-width="2"/></svg></div>
+                <div style="flex:1">
+                  <div id="palette" style="display:flex; gap:0.5rem;">
+                    <div class="palette-item" style="background:#e53935; width:60px; height:45px;" draggable="true" data-shape="rect" data-w="80" data-h="55"></div>
+                    <div class="palette-item" style="width:0;height:0;border-left:25px solid transparent;border-right:25px solid transparent;border-bottom:40px solid #43a047;" draggable="true" data-shape="triangle" data-w="50" data-h="40"></div>
+                    <div class="palette-item" style="background:#1e88e5; border-radius:50%; width:35px; height:35px;" draggable="true" data-shape="circle" data-w="35" data-h="35"></div>
+                  </div>
+                  <div id="dropzone" class="construction-zone"></div>
+                </div>
+              </div>
+              <button class="btn success" onclick="Epreuves.Assemblage.terminer()">Valider</button>
+            </div>
+          `);
+          document.getElementById('dropzone').addEventListener('dragover', e=>e.preventDefault());
+          document.getElementById('dropzone').addEventListener('drop', e=>{
+            e.preventDefault();
+            const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+            const rect = document.getElementById('dropzone').getBoundingClientRect();
+            const x = e.clientX - rect.left - data.w/2, y = e.clientY - rect.top - data.h/2;
+            const el = document.createElement('div'); el.className='shape-on-zone'; el.style.left=x+'px'; el.style.top=y+'px';
+            if(data.shape==='rect') { el.style.width=data.w+'px'; el.style.height=data.h+'px'; el.style.background='#e53935'; }
+            else if(data.shape==='triangle') { el.style.borderLeft='25px solid transparent'; el.style.borderRight='25px solid transparent'; el.style.borderBottom='40px solid #43a047'; }
+            else if(data.shape==='circle') { el.style.width=data.w+'px'; el.style.height=data.h+'px'; el.style.background='#1e88e5'; el.style.borderRadius='50%'; }
+            el.addEventListener('mousedown', startDragShape); el.addEventListener('touchstart', startDragShape, {passive:false});
+            document.getElementById('dropzone').appendChild(el);
+            state.formes.push({shape:data.shape, x, y});
+          });
+          document.querySelectorAll('.palette-item').forEach(item=>{
+            item.addEventListener('dragstart', e=>e.dataTransfer.setData('text/plain', JSON.stringify({shape:item.dataset.shape, w:parseInt(item.dataset.w), h:parseInt(item.dataset.h)})));
+          });
+          window._afState = state; window._afEpreuve = epreuve;
+        },
+        terminer() {
+          const temps = (Date.now()-window._afState.startTime)/1000;
+          window._afEpreuve.session.score = { formes:window._afState.formes.length, temps:temps.toFixed(1) };
+          window._afEpreuve.finish();
+          App.render(`<div class="card"><h2>Assemblage terminé</h2><button class="btn" onclick="showEpreuves()">Retour</button></div>`);
+        }
+      },
+
+      TracePrecision: {
+        start() {
+          if(!App.currentUser) return alert('Profil requis.');
+          const w=800, h=350;
+          const pointsBruts = [];
+          for(let i=0;i<=20;i++) pointsBruts.push({x:40+i*35, y:h/2 + Math.sin(i*0.8)*100});
+          const path = [];
+          for(let i=0;i<200;i++) {
+            const t = i/199;
+            const idx = t*(pointsBruts.length-1);
+            const idx0 = Math.floor(idx);
+            const idx1 = Math.min(idx0+1, pointsBruts.length-1);
+            const frac = idx - idx0;
+            const x = pointsBruts[idx0].x + (pointsBruts[idx1].x - pointsBruts[idx0].x)*frac;
+            const y = pointsBruts[idx0].y + (pointsBruts[idx1].y - pointsBruts[idx0].y)*frac;
+            path.push({x,y});
+          }
+          const state = { path, tracing:false, sorties:0, startTime:null, points:[], lastOut:false };
+          const epreuve = new Epreuve('Tracé de précision');
+          App.render(`
+            <div class="card"><h2>✏️ Tracé de précision</h2>
+              <p>Suivez le chemin avec la souris (ou doigt). <span style="color:red">Si vous sortez du gris, le trait devient rouge.</span></p>
+              <canvas id="traceCanvas" width="800" height="350" style="border:1px solid var(--border); width:100%;"></canvas>
+              <button class="btn" onclick="Epreuves.TracePrecision.cleanup()">Annuler</button>
+            </div>
+          `);
+          const canvas = document.getElementById('traceCanvas');
+          const ctx = canvas.getContext('2d');
+          ctx.clearRect(0,0,w,h);
+          ctx.beginPath(); ctx.strokeStyle='#ccc'; ctx.lineWidth=25; ctx.lineCap='round';
+          ctx.moveTo(path[0].x, path[0].y);
+          for(let i=1;i<path.length;i++) ctx.lineTo(path[i].x, path[i].y);
+          ctx.stroke();
+          ctx.fillStyle='red'; ctx.beginPath(); ctx.arc(path[0].x, path[0].y,8,0,2*Math.PI); ctx.fill();
+          ctx.fillStyle='blue'; ctx.beginPath(); ctx.arc(path[path.length-1].x, path[path.length-1].y,8,0,2*Math.PI); ctx.fill();
+
+          const TOLERANCE = 12.5;
+          canvas.addEventListener('mousedown', (e)=>{
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width/rect.width, scaleY = canvas.height/rect.height;
+            const x = (e.clientX-rect.left)*scaleX, y = (e.clientY-rect.top)*scaleY;
+            if(Math.hypot(x-path[0].x, y-path[0].y) < 20) {
+              state.tracing = true; state.startTime = Date.now();
+            }
+          });
+          const move = (x,y) => {
+            if(!state.tracing) return;
+            state.points.push({x,y});
+            let minDist = Infinity;
+            for(const p of path) minDist = Math.min(minDist, Math.hypot(x-p.x, y-p.y));
+            const isOut = minDist > TOLERANCE;
+            if(isOut && !state.lastOut) state.sorties++;
+            state.lastOut = isOut;
+            ctx.fillStyle = isOut ? '#ef4444' : '#10b981';
+            ctx.beginPath(); ctx.arc(x, y, 4, 0, 2*Math.PI); ctx.fill();
+            const end = path[path.length-1];
+            if(Math.hypot(x-end.x, y-end.y) < 12) {
+              state.tracing = false;
+              canvas.removeEventListener('mousemove', mouseMove);
+              canvas.removeEventListener('touchmove', touchMove);
+              Epreuves.TracePrecision.terminer();
+            }
+          };
+          const mouseMove = (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width/rect.width, scaleY = canvas.height/rect.height;
+            move((e.clientX-rect.left)*scaleX, (e.clientY-rect.top)*scaleY);
+          };
+          const touchMove = (e) => {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width/rect.width, scaleY = canvas.height/rect.height;
+            const t = e.touches[0];
+            move((t.clientX-rect.left)*scaleX, (t.clientY-rect.top)*scaleY);
+          };
+          canvas.addEventListener('mousemove', mouseMove);
+          canvas.addEventListener('touchmove', touchMove, {passive:false});
+          window._tpEpreuve = epreuve; window._tpState = state;
+        },
+        terminer() {
+          const temps = (Date.now()-window._tpState.startTime)/1000;
+          window._tpEpreuve.session.score = { temps:temps.toFixed(1), sorties:window._tpState.sorties };
+          window._tpEpreuve.finish();
+          App.render(`<div class="card"><h2>Résultat Tracé</h2><p>Temps: ${temps.toFixed(1)}s, Sorties: ${window._tpState.sorties}</p><button class="btn" onclick="showEpreuves()">Retour</button></div>`);
+        },
+        cleanup() { showEpreuves(); }
+      },
+
+      PointsARelier: {
+        start() {
+          if(!App.currentUser) return alert('Profil requis.');
+          const points = [
+            {x:400, y:30, num:1},{x:480, y:150, num:2},{x:700, y:120, num:3},
+            {x:520, y:240, num:4},{x:580, y:380, num:5},{x:400, y:300, num:6},
+            {x:220, y:380, num:7},{x:280, y:240, num:8},{x:100, y:120, num:9},
+            {x:320, y:150, num:10}
+          ];
+          const state = { points, current:1, startTime:Date.now(), erreurs:0 };
+          const epreuve = new Epreuve('Points à relier');
+          App.render(`
+            <div class="card"><h2>🔗 Points à relier</h2>
+              <p>Cliquez sur les points dans l'ordre pour faire apparaître le dessin !</p>
+              <canvas id="prCanvas" width="800" height="400" style="border:1px solid var(--border); width:100%;"></canvas>
+              <button class="btn secondary" onclick="showEpreuves()">Annuler</button>
+            </div>
+          `);
+          const canvas = document.getElementById('prCanvas');
+          const ctx = canvas.getContext('2d');
+          function draw() {
+            ctx.clearRect(0,0,800,400);
+            points.forEach((p,i)=>{
+              ctx.beginPath(); ctx.arc(p.x,p.y,12,0,2*Math.PI);
+              ctx.fillStyle = i < state.current-1 ? '#10b981' : '#f59e0b';
+              ctx.fill(); ctx.fillStyle='#000'; ctx.font='bold 16px sans-serif'; ctx.fillText(p.num, p.x-8, p.y+6);
+            });
+            if(state.current > 2) {
+              ctx.beginPath(); ctx.strokeStyle='#10b981'; ctx.lineWidth=4;
+              for(let i=0; i<state.current-2; i++) {
+                ctx.moveTo(points[i].x, points[i].y);
+                ctx.lineTo(points[i+1].x, points[i+1].y);
+              }
+              ctx.stroke();
+            }
+          }
+          draw();
+          canvas.addEventListener('click', (e)=>{
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width/rect.width, scaleY = canvas.height/rect.height;
+            const x = (e.clientX-rect.left)*scaleX, y = (e.clientY-rect.top)*scaleY;
+            const target = points[state.current-1];
+            if(!target) return;
+            if(Math.hypot(x-target.x, y-target.y) < 25) {
+              state.current++; App.beep(500,100);
+              if(state.current > points.length) {
+                const temps = (Date.now()-state.startTime)/1000;
+                epreuve.session.score = { temps:temps.toFixed(1), erreurs:state.erreurs };
+                epreuve.finish();
+                App.render(`<div class="card"><h2>Terminé</h2><p>Temps: ${temps.toFixed(1)}s</p><button class="btn" onclick="showEpreuves()">Retour</button></div>`);
+              } else draw();
+            } else { state.erreurs++; App.beep(200,200); }
+          });
+        }
+      },
+
+      PerceptionVisuelle: {
+        start() {
+          if(!App.currentUser) return alert('Profil requis.');
+          const items = [
+            {q:'🔵', choices:['🔵','🟣','🔴','🟠'], correct:0},
+            {q:'⭐', choices:['🌟','⭐','✨','💫'], correct:1},
+            {q:'🟥', choices:['🟦','🟥','🟨','🟩'], correct:1},
+            {q:'▲', choices:['▼','◄','▲','►'], correct:2},
+            {q:'🐶', choices:['🐱','🐶','🐭','🐹'], correct:1},
+            {q:'🍎', choices:['🍏','🍎','🍐','🍊'], correct:1},
+            {q:'🚗', choices:['🚕','🚙','🚗','🚌'], correct:2},
+            {q:'⚽', choices:['🏀','⚾','⚽','🏈'], correct:2},
+            {q:'🎵', choices:['🎶','🎵','🎼','🎤'], correct:1},
+            {q:'❤️', choices:['🧡','💛','💚','❤️'], correct:3}
+          ];
+          const state = { items, current:0, responses:[] };
+          const epreuve = new Epreuve('Perception visuelle');
+          App.render(`
+            <div class="card center"><h2>👁️ Perception visuelle</h2>
+              <p>Quelle est l'image identique au modèle ?</p>
+              <div id="pvModel" style="font-size:5rem; margin:1rem;"></div>
+              <div id="pvChoices" style="display:flex; gap:1rem; justify-content:center; font-size:2rem;"></div>
+              <p id="pvProgress">1/${items.length}</p>
+              <button class="btn secondary" onclick="showEpreuves()">Annuler</button>
+            </div>
+          `);
+          this.state = state; this.epreuve = epreuve; this.afficher();
+        },
+        afficher() {
+          const s = this.state;
+          if(s.current >= s.items.length) { this.terminer(); return; }
+          const item = s.items[s.current];
+          document.getElementById('pvModel').textContent = item.q;
+          const choicesDiv = document.getElementById('pvChoices'); choicesDiv.innerHTML = '';
+          item.choices.forEach((c,i)=>{
+            const btn = document.createElement('button'); btn.className='btn'; btn.textContent=c; btn.style.fontSize='2rem';
+            btn.onclick = ()=>{
+              s.responses.push({ expected:item.correct, given:i, correct:i===item.correct });
+              s.current++; this.afficher();
+            };
+            choicesDiv.appendChild(btn);
+          });
+          document.getElementById('pvProgress').textContent = `${s.current+1}/${s.items.length}`;
+        },
+        terminer() {
+          const correct = this.state.responses.filter(r=>r.correct).length;
+          this.epreuve.session.score = { total:this.state.items.length, correct, erreurs:this.state.items.length-correct };
+          this.epreuve.finish();
+          App.render(`<div class="card"><h2>Résultat</h2><p>Correct: ${correct}/${this.state.items.length}</p><button class="btn" onclick="showEpreuves()">Retour</button></div>`);
+        }
+      },
+
+      TrailMaking: {
+        start() {
+          if(!App.currentUser) return alert('Profil requis.');
+          const elements = [];
+          const chars = 'ABCDEFGHIJ';
+          for(let i=0;i<10;i++) {
+            let x = 40+Math.random()*720, y = 40+Math.random()*320;
+            let overlap = true, attempts = 0;
+            while(overlap && attempts < 100) {
+              overlap = false;
+              for(const el of elements) {
+                if(Math.hypot(x-el.x, y-el.y) < 60) { overlap = true; break; }
+              }
+              if(overlap) { x = 40+Math.random()*720; y = 40+Math.random()*320; }
+              attempts++;
+            }
+            elements.push({type:'number', value:i+1, label:''+(i+1), x, y});
+          }
+          for(let i=0;i<10;i++) {
+            let x = 40+Math.random()*720, y = 40+Math.random()*320;
+            let overlap = true, attempts = 0;
+            while(overlap && attempts < 100) {
+              overlap = false;
+              for(const el of elements) {
+                if(Math.hypot(x-el.x, y-el.y) < 60) { overlap = true; break; }
+              }
+              if(overlap) { x = 40+Math.random()*720; y = 40+Math.random()*320; }
+              attempts++;
+            }
+            elements.push({type:'letter', value:chars[i], label:chars[i], x, y});
+          }
+          const expected = [];
+          for(let i=0;i<10;i++) { expected.push({type:'number',value:i+1}); expected.push({type:'letter',value:chars[i]}); }
+          const state = { elements, expected, current:0, startTime:Date.now(), erreurs:0 };
+          const epreuve = new Epreuve('Trail Making');
+          App.render(`
+            <div class="card"><h2>🔀 Trail Making</h2>
+              <p>Cliquez sur les ronds en alternant <b>chiffre</b> et <b>lettre</b> dans l'ordre :<br>
+              <span style="color:#3b82f6; font-size:1.2rem;">1 → A → 2 → B → 3 → C ...</span></p>
+              <canvas id="tmCanvas" width="800" height="400" style="border:1px solid var(--border); width:100%;"></canvas>
+              <button class="btn secondary" onclick="showEpreuves()">Annuler</button>
+            </div>
+          `);
+          const canvas = document.getElementById('tmCanvas');
+          const ctx = canvas.getContext('2d');
+          const draw = () => {
+            ctx.clearRect(0,0,800,400);
+            elements.forEach(el => {
+              ctx.beginPath(); ctx.arc(el.x,el.y,18,0,2*Math.PI);
+              ctx.fillStyle='#f59e0b'; ctx.fill();
+              ctx.fillStyle='#000'; ctx.font='bold 14px sans-serif'; ctx.fillText(el.label, el.x-8, el.y+5);
+            });
+          };
+          draw();
+          const clickHandler = (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width/rect.width, scaleY = canvas.height/rect.height;
+            const x = (e.clientX-rect.left)*scaleX, y = (e.clientY-rect.top)*scaleY;
+            const exp = state.expected[state.current];
+            if(!exp) return;
+            let clicked = null;
+            for(const el of elements) {
+              if(Math.hypot(x-el.x, y-el.y) < 22) { clicked = el; break; }
+            }
+            if(!clicked) return;
+            if(clicked.type === exp.type && clicked.value === exp.value) {
+              state.current++; App.beep(500,100);
+              if(state.current >= state.expected.length) {
+                canvas.removeEventListener('click', clickHandler);
+                const temps = (Date.now()-state.startTime)/1000;
+                epreuve.session.score = { temps:temps.toFixed(1), erreurs:state.erreurs };
+                epreuve.finish();
+                App.render(`<div class="card"><h2>Terminé</h2><p>Temps: ${temps.toFixed(1)}s</p><button class="btn" onclick="showEpreuves()">Retour</button></div>`);
+              } else draw();
+            } else { state.erreurs++; App.beep(200,200); }
+          };
+          canvas.addEventListener('click', clickHandler);
+        }
+      }
+    };
+
+    function startDragShape(e) {
+      e.preventDefault();
+      const el = e.target.closest('.shape-on-zone');
+      if(!el) return;
+      const zone = el.parentElement;
+      const rect = zone.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      const shiftX = clientX - el.getBoundingClientRect().left;
+      const shiftY = clientY - el.getBoundingClientRect().top;
+      const move = (ev) => {
+        const cx = ev.touches ? ev.touches[0].clientX : ev.clientX;
+        const cy = ev.touches ? ev.touches[0].clientY : ev.clientY;
+        el.style.left = (cx - rect.left - shiftX) + 'px';
+        el.style.top = (cy - rect.top - shiftY) + 'px';
+      };
+      const stop = () => {
+        document.removeEventListener('mousemove', move);
+        document.removeEventListener('touchmove', move);
+        document.removeEventListener('mouseup', stop);
+        document.removeEventListener('touchend', stop);
+      };
+      document.addEventListener('mousemove', move);
+      document.addEventListener('touchmove', move, {passive:false});
+      document.addEventListener('mouseup', stop);
+      document.addEventListener('touchend', stop);
+    }
+
+    // ========== INITIALISATION ==========
+    window.onload = () => {
+      App.loadSettings();
+      const last = localStorage.getItem('ergoeval_lastUser');
+      if(last) {
+        const user = App.getUsers().find(u=>u.id===last);
+        if(user) { App.currentUser = user; showDashboard(); return; }
+      }
+      showLogin();
+    };
+
+    window.showDashboard = showDashboard;
+    window.showEpreuves = showEpreuves;
+    window.showLogin = showLogin;
+    window.selectUser = selectUser;
+    window.createUser = createUser;
+    window.logout = logout;
+    window.openSettings = openSettings;
+    window.updateSetting = updateSetting;
+    window.showRapport = showRapport;
+    window.showInfo = showInfo;
+    window.Epreuves = Epreuves;
+  </script>
+</body>
+</html>
