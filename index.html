@@ -26,7 +26,7 @@
       background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh;
       transition: background 0.3s, color 0.3s;
     }
-    .app-shell { max-width: 960px; margin: 0 auto; padding: 1rem; display: flex; flex-direction: column; min-height: 100vh; }
+    .app-shell { max-width: 960px; margin: 0 auto; padding: 1rem; }
     .top-nav {
       display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;
       background: var(--surface); padding: 0.75rem 1rem; border-radius: var(--radius); box-shadow: var(--shadow);
@@ -90,6 +90,12 @@
       background: var(--surface); border-radius: var(--radius); padding: 1rem; margin: 0.5rem;
       border: 1px solid var(--border); box-shadow: var(--shadow);
     }
+    .emoji-btn { font-size: 2rem; background: none; border: 2px solid transparent; border-radius: 8px; padding: 0.3rem 0.6rem; cursor: pointer; }
+    .emoji-btn:hover, .emoji-btn.selected { border-color: var(--primary); background: var(--bg); }
+    .mem-item {
+      cursor: pointer; padding: 0.5rem; border: 2px solid transparent; border-radius: 8px; user-select: none;
+    }
+    .mem-item.selected { border-color: var(--primary); background: var(--primary-light); }
   </style>
 </head>
 <body class="light">
@@ -160,7 +166,7 @@
     function showDashboard() {
       if(!App.currentUser) return showLogin();
       const sessions = App.getSessions(App.currentUser.id);
-      const hist = sessions.length ? sessions.map(s=>`<div style="padding:0.3rem; background:var(--bg); border-radius:6px; margin:0.2rem 0">${s.epreuve} (${s.mode}) – ${new Date(s.date).toLocaleDateString()} – ${JSON.stringify(s.score)}</div>`).join('') : '<em>Aucune épreuve</em>';
+      const hist = sessions.length ? sessions.map(s=>`<div style="padding:0.3rem; background:var(--bg); border-radius:6px; margin:0.2rem 0">${s.epreuve} (${s.mode}) – ${new Date(s.date).toLocaleDateString()} – ${JSON.stringify(s.score)}${s.sentiment?' - '+s.sentiment:''}</div>`).join('') : '<em>Aucune épreuve</em>';
       App.render(`
         <div class="top-nav">
           <span class="logo">🧠 ErgoEval Pro</span>
@@ -182,19 +188,20 @@
         <div class="top-nav"><span class="logo">🧠 ErgoEval Pro</span><button class="btn" onclick="showDashboard()">🏠 Accueil</button></div>
         <div class="card"><h2>📋 Épreuves</h2>
           <div class="grid">
-            <button class="btn" onclick="Epreuves.Pointage.start()">🎯 Pointage</button>
-            <button class="btn" onclick="Epreuves.GlisserDeposer.start()">🖐️ Glisser-déposer</button>
-            <button class="btn" onclick="Epreuves.DoubleClic.start()">🖱️ Double-clic</button>
-            <button class="btn" onclick="Epreuves.Dictee.start()">🔢 Dictée</button>
-            <button class="btn" onclick="Epreuves.CalculMental.start()">🧮 Calcul</button>
-            <button class="btn" onclick="Epreuves.Problemes.start()">📝 Problèmes</button>
-            <button class="btn" onclick="Epreuves.CopieTexte.start()">✍️ Copie</button>
-            <button class="btn" onclick="Epreuves.Barrage.start()">🔍 Barrage</button>
-            <button class="btn" onclick="Epreuves.Assemblage.start()">🧩 Assemblage</button>
-            <button class="btn" onclick="Epreuves.TracePrecision.start()">✏️ Tracé</button>
-            <button class="btn" onclick="Epreuves.PointsARelier.start()">🔗 Points</button>
-            <button class="btn" onclick="Epreuves.PerceptionVisuelle.start()">👁️ Perception</button>
-            <button class="btn" onclick="Epreuves.TrailMaking.start()">🔀 Trail</button>
+            <button class="btn" onclick="Epreuves.Pointage.chooseMode()">🎯 Pointage</button>
+            <button class="btn" onclick="Epreuves.GlisserDeposer.chooseMode()">🖐️ Glisser-déposer</button>
+            <button class="btn" onclick="Epreuves.DoubleClic.chooseMode()">🖱️ Double-clic</button>
+            <button class="btn" onclick="Epreuves.Dictee.chooseMode()">🔢 Dictée</button>
+            <button class="btn" onclick="Epreuves.CalculMental.chooseMode()">🧮 Calcul</button>
+            <button class="btn" onclick="Epreuves.Problemes.chooseMode()">📝 Problèmes</button>
+            <button class="btn" onclick="Epreuves.CopieTexte.chooseMode()">✍️ Copie</button>
+            <button class="btn" onclick="Epreuves.Barrage.chooseMode()">🔍 Barrage</button>
+            <button class="btn" onclick="Epreuves.Assemblage.chooseMode()">🧩 Assemblage</button>
+            <button class="btn" onclick="Epreuves.TracePrecision.chooseMode()">✏️ Tracé</button>
+            <button class="btn" onclick="Epreuves.PointsARelier.chooseMode()">🔗 Points</button>
+            <button class="btn" onclick="Epreuves.PerceptionVisuelle.chooseMode()">👁️ Perception</button>
+            <button class="btn" onclick="Epreuves.TrailMaking.chooseMode()">🔀 Trail</button>
+            <button class="btn" onclick="Epreuves.Memorisation.chooseMode()">🧠 Mémoire</button>
           </div>
         </div>
       `);
@@ -205,23 +212,20 @@
         <div class="top-nav"><span class="logo">ℹ️ Barème de notation</span><button class="btn secondary" onclick="showDashboard()">Retour</button></div>
         <div class="card">
           <h2>Comment sont calculées les notes sur 10 ?</h2>
-          <p>Chaque épreuve donne un score brut, transformé en note /10 selon les règles suivantes :</p>
-          <ul style="margin-top:1rem; line-height:2;">
-            <li><b>Pointage de cibles</b> : 70% précision (hits/total) + 30% vitesse (10 - temps/3)</li>
-            <li><b>Glisser-déposer</b> : 10 - (temps/5) - (erreurs×2)</li>
-            <li><b>Double-clic / Clic droit</b> : 10 - (temps/3)</li>
-            <li><b>Dictée de nombres</b> : (bonnes réponses / total) × 10</li>
-            <li><b>Calcul mental</b> : (bonnes réponses / total) × 10</li>
-            <li><b>Problèmes</b> : (bonnes réponses / total) × 10</li>
-            <li><b>Copie de texte</b> : vitesse (mots/min) / 20 × 10, pondérée par la précision (1 - erreurs/10)</li>
-            <li><b>Barrage visuel</b> : (cloches trouvées / total) × 10 - (fausses alarmes × 1.5)</li>
-            <li><b>Assemblage de formes</b> : 10 - (temps/15) - (écart au nombre idéal de formes × 2)</li>
-            <li><b>Tracé de précision</b> : 10 - (temps/25) - (sorties × 1.5)</li>
-            <li><b>Points à relier</b> : 10 - (temps/8) - (erreurs × 2)</li>
-            <li><b>Perception visuelle</b> : (bonnes réponses / total) × 10</li>
-            <li><b>Trail Making</b> : 10 - (temps/10) - (erreurs × 2)</li>
+          <ul style="line-height:2;">
+            <li><b>Pointage</b> : 70% précision + 30% vitesse (10 - temps/3)</li>
+            <li><b>Glisser-déposer</b> : 10 - temps/5 - erreurs×2</li>
+            <li><b>Double-clic</b> : 10 - temps/3</li>
+            <li><b>Dictée, Calcul, Problèmes, Perception</b> : bonnes réponses / total × 10</li>
+            <li><b>Copie texte</b> : (mots/min / 20 × 10) × précision (1 - erreurs/10)</li>
+            <li><b>Barrage</b> : (trouvées/total×10) - fausses×1.5</li>
+            <li><b>Assemblage</b> : 10 - temps/15 - |3 - formes|×2</li>
+            <li><b>Tracé</b> : 10 - temps/25 - sorties×1.5</li>
+            <li><b>Points à relier</b> : 10 - temps/8 - erreurs×2</li>
+            <li><b>Trail Making</b> : 10 - temps/15 - erreurs×2</li>
+            <li><b>Mémoire</b> : (correct - erreurs) / total × 10</li>
           </ul>
-          <p style="margin-top:1rem;">Les catégories (Logique, Calcul, Frappe clavier, Visuo-spatiale) sont les moyennes des notes des épreuves correspondantes.</p>
+          <p style="margin-top:1rem;"><b>Interprétation :</b> ≥ 7 = facilité, ≥ 4 = difficulté modérée, &lt; 4 = difficulté importante.</p>
         </div>
       `);
     }
@@ -270,85 +274,38 @@
     }
     function updateSetting(k,v) { if(k==='soundEnabled') v = v===true||v==='true'; App.settings[k]=v; App.saveSettings(); }
 
-    // ========== CATÉGORIES ET SCORES ==========
+    // ========== CATÉGORIES ET SCORES (révisés) ==========
     const CATEGORIES = {
       'Logique': ['Trail Making', 'Barrage visuel', 'Points à relier'],
       'Calcul': ['Calcul mental', 'Problèmes', 'Dictée de nombres'],
       'Frappe clavier': ['Copie de texte', 'Double-clic / Clic droit', 'Glisser-déposer'],
-      'Visuo-spatiale': ['Pointage de cibles', 'Assemblage de formes', 'Tracé de précision', 'Perception visuelle']
+      'Visuo-spatiale': ['Pointage de cibles', 'Assemblage de formes', 'Tracé de précision', 'Perception visuelle'],
+      'Mémoire': ['Mémorisation visuelle']
     };
 
     function normaliserScore(epreuve, score) {
       if(!score) return 0;
       switch(epreuve) {
-        case 'Pointage de cibles': {
-          const precision = score.precision || 0;
-          const temps = parseFloat(score.totalSec) || 60;
-          const rapidite = Math.max(0, 10 - (temps / 3));
-          return Math.min(10, (precision / 10) * 0.7 + rapidite * 0.3);
-        }
-        case 'Glisser-déposer': {
-          const temps = parseFloat(score.temps) || 30;
-          const erreurs = score.erreurs || 0;
-          return Math.max(0, 10 - (temps / 5) - (erreurs * 2));
-        }
-        case 'Double-clic / Clic droit': {
-          const temps = parseFloat(score.temps) || 20;
-          return Math.max(0, 10 - (temps / 3));
-        }
-        case 'Dictée de nombres': {
-          const correct = score.correct || 0;
-          const total = score.total || 10;
-          return (correct / total) * 10;
-        }
-        case 'Calcul mental': {
-          const correct = score.correct || 0;
-          const total = score.total || 8;
-          return (correct / total) * 10;
-        }
-        case 'Problèmes': {
-          const correct = score.correct || 0;
-          const total = score.total || 4;
-          return (correct / total) * 10;
-        }
+        case 'Pointage de cibles': return Math.min(10, ((score.precision||0)/10)*0.7 + Math.max(0,10-(parseFloat(score.totalSec)||60)/3)*0.3);
+        case 'Glisser-déposer': return Math.max(0, 10 - (parseFloat(score.temps)||30)/5 - (score.erreurs||0)*2);
+        case 'Double-clic / Clic droit': return Math.max(0, 10 - (parseFloat(score.temps)||20)/3);
+        case 'Dictée de nombres': return ((score.correct||0) / (score.total||10)) * 10;
+        case 'Calcul mental': return ((score.correct||0) / (score.total||8)) * 10;
+        case 'Problèmes': return ((score.correct||0) / (score.total||4)) * 10;
         case 'Copie de texte': {
-          const wpm = score.wpm || 0;
-          const erreurs = score.erreurs || 0;
-          const precision = Math.max(0, 1 - erreurs / 10);
-          return Math.min(10, (wpm / 20) * 10 * precision);
+          const wpm = score.wpm || 0; const erreurs = score.erreurs || 0;
+          const precision = Math.max(0, 1 - erreurs/10);
+          return Math.min(10, (wpm/20)*10*precision);
         }
-        case 'Barrage visuel': {
-          const trouvees = score.trouvees || 0;
-          const cibles = score.cibles || 25;
-          const fausses = score.fausses || 0;
-          const exactitude = (trouvees / cibles) * 10;
-          const penalite = fausses * 1.5;
-          return Math.max(0, exactitude - penalite);
-        }
-        case 'Assemblage de formes': {
-          const temps = parseFloat(score.temps) || 30;
-          const formes = score.formes || 0;
-          return Math.max(0, 10 - (temps / 15) - Math.abs(3 - formes) * 2);
-        }
-        case 'Tracé de précision': {
-          const temps = parseFloat(score.temps) || 30;
-          const sorties = score.sorties || 0;
-          return Math.max(0, 10 - (temps / 25) - (sorties * 1.5));
-        }
-        case 'Points à relier': {
-          const temps = parseFloat(score.temps) || 30;
-          const erreurs = score.erreurs || 0;
-          return Math.max(0, 10 - (temps / 8) - (erreurs * 2));
-        }
-        case 'Perception visuelle': {
-          const correct = score.correct || 0;
-          const total = score.total || 10;
-          return (correct / total) * 10;
-        }
-        case 'Trail Making': {
-          const temps = parseFloat(score.temps) || 30;
-          const erreurs = score.erreurs || 0;
-          return Math.max(0, 10 - (temps / 10) - (erreurs * 2));
+        case 'Barrage visuel': return Math.max(0, ((score.trouvees||0)/(score.cibles||25))*10 - (score.fausses||0)*1.5);
+        case 'Assemblage de formes': return Math.max(0, 10 - (parseFloat(score.temps)||30)/15 - Math.abs(3-(score.formes||0))*2);
+        case 'Tracé de précision': return Math.max(0, 10 - (parseFloat(score.temps)||30)/25 - (score.sorties||0)*1.5);
+        case 'Points à relier': return Math.max(0, 10 - (parseFloat(score.temps)||30)/8 - (score.erreurs||0)*2);
+        case 'Perception visuelle': return ((score.correct||0) / (score.total||10)) * 10;
+        case 'Trail Making': return Math.max(0, 10 - (parseFloat(score.temps)||30)/15 - (score.erreurs||0)*2);
+        case 'Mémorisation visuelle': {
+          const correct = score.correct || 0; const errors = score.errors || 0; const total = score.total || 6;
+          return Math.max(0, ((correct - errors) / total) * 10);
         }
         default: return 0;
       }
@@ -357,22 +314,23 @@
     function calculerNotes(sessions) {
       const notesParEpreuve = {};
       sessions.forEach(s => {
-        if(!notesParEpreuve[s.epreuve]) notesParEpreuve[s.epreuve] = [];
-        notesParEpreuve[s.epreuve].push(normaliserScore(s.epreuve, s.score));
+        if(!notesParEpreuve[s.epreuve]) notesParEpreuve[s.epreuve] = {};
+        if(!notesParEpreuve[s.epreuve][s.mode]) notesParEpreuve[s.epreuve][s.mode] = [];
+        notesParEpreuve[s.epreuve][s.mode].push(normaliserScore(s.epreuve, s.score));
       });
       const moyenneEpreuve = {};
-      for(const [ep, notes] of Object.entries(notesParEpreuve)) {
-        moyenneEpreuve[ep] = notes.reduce((a,b)=>a+b,0) / notes.length;
+      for(const [ep, modes] of Object.entries(notesParEpreuve)) {
+        const allNotes = [];
+        for(const notes of Object.values(modes)) allNotes.push(...notes);
+        if(allNotes.length) moyenneEpreuve[ep] = allNotes.reduce((a,b)=>a+b,0)/allNotes.length;
       }
       const categories = {};
       for(const [cat, epreuves] of Object.entries(CATEGORIES)) {
         let somme = 0, nb = 0;
-        epreuves.forEach(ep => {
-          if(moyenneEpreuve[ep] !== undefined) { somme += moyenneEpreuve[ep]; nb++; }
-        });
+        epreuves.forEach(ep => { if(moyenneEpreuve[ep]!==undefined) { somme += moyenneEpreuve[ep]; nb++; } });
         categories[cat] = nb > 0 ? somme / nb : 0;
       }
-      return { parEpreuve: moyenneEpreuve, categories };
+      return { parEpreuve: moyenneEpreuve, categories, notesParEpreuve };
     }
 
     function showRapport() {
@@ -382,143 +340,230 @@
         App.render(`<div class="card"><h2>📊 Rapport</h2><p>Aucune épreuve réalisée.</p><button class="btn" onclick="showDashboard()">Retour</button></div>`);
         return;
       }
-      const { parEpreuve, categories } = calculerNotes(sessions);
+      const { parEpreuve, categories, notesParEpreuve } = calculerNotes(sessions);
       let htmlEpreuves = '';
       for(const [ep, note] of Object.entries(parEpreuve)) {
         const color = note >= 7 ? 'var(--success)' : note >= 4 ? 'var(--warning)' : 'var(--danger)';
-        htmlEpreuves += `<div style="display:flex; justify-content:space-between; margin:0.3rem 0;">
-          <span>${ep}</span><span class="score-badge" style="background:${color}">${note.toFixed(1)}/10</span></div>`;
+        htmlEpreuves += `<div style="display:flex; justify-content:space-between; margin:0.3rem 0;"><span>${ep}</span><span class="score-badge" style="background:${color}">${note.toFixed(1)}/10</span></div>`;
       }
       let htmlCategories = '';
       for(const [cat, note] of Object.entries(categories)) {
         const color = note >= 7 ? 'var(--success)' : note >= 4 ? 'var(--warning)' : 'var(--danger)';
         const epreuvesCat = CATEGORIES[cat].join(', ');
-        htmlCategories += `<div class="category-card" style="border-left: 4px solid ${color}">
-          <strong>${cat}</strong> : <span style="font-size:1.2rem; font-weight:bold;">${note.toFixed(1)}/10</span>
-          <div style="font-size:0.9rem; margin-top:0.3rem; color: var(--text);">Épreuves : ${epreuvesCat}</div>
-          <p style="font-size:0.9rem; margin-top:0.5rem;">${note >= 7 ? '✅ Facilité' : note >= 4 ? '⚠️ Difficulté modérée' : '❌ Difficulté importante'}</p>
-        </div>`;
+        htmlCategories += `<div class="category-card" style="border-left:4px solid ${color}"><strong>${cat}</strong> : ${note.toFixed(1)}/10<div>Épreuves : ${epreuvesCat}</div><p>${note>=7?'✅ Facilité':note>=4?'⚠️ Modéré':'❌ Difficulté'}</p></div>`;
       }
+      let recommandations = '';
+      if(categories['Frappe clavier']<4) recommandations += '<li>Clavier adapté ou dictée vocale.</li>';
+      if(categories['Visuo-spatiale']<4) recommandations += '<li>Écran tactile, éviter la souris.</li>';
+      if(categories['Calcul']<4) recommandations += '<li>Calculatrice ou logiciel d’aide.</li>';
+      if(categories['Logique']<4) recommandations += '<li>Supports visuels structurés.</li>';
+      if(categories['Mémoire']<4) recommandations += '<li>Aide-mémoire, fractionner les consignes.</li>';
+      if(!recommandations) recommandations = '<li>Aucune difficulté majeure détectée.</li>';
+
+      let comparaisonHtml = '';
+      for(const [ep, modes] of Object.entries(notesParEpreuve)) {
+        if(modes.numerique && modes.papier) {
+          const numAvg = modes.numerique.reduce((a,b)=>a+b,0)/modes.numerique.length;
+          const papAvg = modes.papier.reduce((a,b)=>a+b,0)/modes.papier.length;
+          const gain = numAvg - papAvg;
+          comparaisonHtml += `<div>${ep} : Num. ${numAvg.toFixed(1)} / Pap. ${papAvg.toFixed(1)} → ${gain>0?'+'+gain.toFixed(1):gain.toFixed(1)}</div>`;
+        }
+      }
+
+      let ressentiHtml = sessions.filter(s=>s.sentiment).map(s=>`${s.epreuve}: ${s.sentiment}`).join('<br>') || 'Aucun retour.';
+
       App.render(`
         <div class="top-nav"><span class="logo">Rapport détaillé</span><button class="btn secondary" onclick="showDashboard()">Retour</button></div>
         <div class="card">
           <h2>📊 Notes par épreuve</h2>${htmlEpreuves}
-          <hr style="margin:1rem 0"><h2>📂 Catégories</h2>
-          <div class="grid" style="grid-template-columns:1fr 1fr;">${htmlCategories}</div>
-          <div class="stat-container" style="height:300px; margin-top:1rem;"><canvas id="radarChart"></canvas></div>
+          <hr><h2>📂 Catégories</h2><div class="grid" style="grid-template-columns:1fr 1fr;">${htmlCategories}</div>
+          <div class="stat-container"><canvas id="radarChart"></canvas></div>
+          <hr><h2>💡 Préconisations</h2><ul>${recommandations}</ul>
+          <hr><h2>📈 Comparaison numérique/papier</h2>${comparaisonHtml||'Aucune comparaison.'}
+          <hr><h2>😊 Ressenti</h2><p>${ressentiHtml}</p>
         </div>
       `);
       setTimeout(()=>{
         const ctx = document.getElementById('radarChart')?.getContext('2d');
-        if(ctx) new Chart(ctx, {
-          type: 'radar',
-          data: {
-            labels: Object.keys(categories),
-            datasets: [{
-              label: 'Score /10',
-              data: Object.values(categories),
-              backgroundColor: 'rgba(59,130,246,0.2)',
-              borderColor: '#3b82f6',
-              pointBackgroundColor: '#3b82f6'
-            }]
-          },
-          options: {
-            responsive: true, maintainAspectRatio: false,
-            scales: { r: { beginAtZero: true, max: 10, ticks: { stepSize: 2 } } },
-            plugins: { tooltip: { callbacks: { label: (ctx) => `${ctx.raw.toFixed(1)}/10` } } }
-          }
-        });
+        if(ctx) new Chart(ctx, { type:'radar', data:{ labels:Object.keys(categories), datasets:[{ label:'Score /10', data:Object.values(categories), backgroundColor:'rgba(59,130,246,0.2)', borderColor:'#3b82f6' }] }, options:{ responsive:true, maintainAspectRatio:false, scales:{ r:{ beginAtZero:true, max:10, ticks:{stepSize:2} } } } });
       },100);
     }
 
     // ========== EPREUVES ==========
     class Epreuve {
-      constructor(nom, mode='numerique') {
-        this.nom = nom; this.mode = mode;
-        this.session = { userId:App.currentUser.id, date:new Date().toISOString(), epreuve:nom, mode, score:{} };
+      constructor(nom, mode='numerique', isTraining=false) {
+        this.nom = nom; this.mode = mode; this.isTraining = isTraining;
+        this.session = { userId:App.currentUser.id, date:new Date().toISOString(), epreuve:nom, mode, score:{}, sentiment:null };
         this.startTime = Date.now();
       }
-      finish() { App.saveSession(this.session); }
+      finish() { if(!this.isTraining) App.saveSession(this.session); }
     }
 
-    // Remarque: Toutes les fonctions "Menu" renvoient désormais vers showEpreuves().
+    function chooseMode(epreuveName, startFn) {
+      App.render(`
+        <div class="top-nav"><span class="logo">${epreuveName}</span><button class="btn secondary" onclick="showEpreuves()">Retour</button></div>
+        <div class="card">
+          <h2>${epreuveName}</h2>
+          <p>Choisissez un mode :</p>
+          <button class="btn" id="startEval">📝 Évaluation</button>
+          <button class="btn warning" id="startTrain">🏋️ Entraînement</button>
+          <button class="btn secondary" id="startPapier">📄 Saisie papier</button>
+        </div>
+      `);
+      document.getElementById('startEval').addEventListener('click', ()=>startFn('evaluation'));
+      document.getElementById('startTrain').addEventListener('click', ()=>startFn('entrainement'));
+      document.getElementById('startPapier').addEventListener('click', ()=>showPaperInput(epreuveName));
+    }
+
+    function showPaperInput(epreuveName) {
+      let formHtml = '';
+      switch(epreuveName) {
+        case 'Pointage de cibles': formHtml = '<label>Précision (%) <input id="pap1"></label><label>Temps (s) <input id="pap2"></label>'; break;
+        case 'Glisser-déposer': formHtml = '<label>Temps (s) <input id="pap1"></label><label>Erreurs <input id="pap2"></label>'; break;
+        case 'Double-clic / Clic droit': formHtml = '<label>Temps (s) <input id="pap1"></label>'; break;
+        case 'Dictée de nombres': formHtml = '<label>Total <input id="pap1" value="10"></label><label>Correct <input id="pap2"></label>'; break;
+        case 'Calcul mental': formHtml = '<label>Total <input id="pap1" value="8"></label><label>Correct <input id="pap2"></label>'; break;
+        case 'Problèmes': formHtml = '<label>Total <input id="pap1" value="4"></label><label>Correct <input id="pap2"></label>'; break;
+        case 'Copie de texte': formHtml = '<label>Caractères <input id="pap1"></label><label>Erreurs <input id="pap2"></label>'; break;
+        case 'Barrage visuel': formHtml = '<label>Cibles <input id="pap1" value="25"></label><label>Trouvées <input id="pap2"></label><label>Fausses <input id="pap3"></label><label>Temps (s) <input id="pap4"></label>'; break;
+        case 'Assemblage de formes': formHtml = '<label>Formes <input id="pap1"></label><label>Temps (s) <input id="pap2"></label>'; break;
+        case 'Tracé de précision': formHtml = '<label>Temps (s) <input id="pap1"></label><label>Sorties <input id="pap2"></label>'; break;
+        case 'Points à relier': formHtml = '<label>Temps (s) <input id="pap1"></label><label>Erreurs <input id="pap2"></label>'; break;
+        case 'Perception visuelle': formHtml = '<label>Total <input id="pap1" value="10"></label><label>Correct <input id="pap2"></label>'; break;
+        case 'Trail Making': formHtml = '<label>Temps (s) <input id="pap1"></label><label>Erreurs <input id="pap2"></label>'; break;
+        case 'Mémorisation visuelle': formHtml = '<label>Correct <input id="pap1"></label><label>Erreurs <input id="pap2"></label>'; break;
+      }
+      App.render(`
+        <div class="top-nav"><span class="logo">Saisie papier - ${epreuveName}</span><button class="btn secondary" onclick="showEpreuves()">Annuler</button></div>
+        <div class="card"><h2>📄 ${epreuveName} (papier)</h2>${formHtml}<button class="btn success" id="savePaperBtn">Enregistrer</button></div>
+      `);
+      document.getElementById('savePaperBtn').addEventListener('click', ()=>{
+        const session = new Epreuve(epreuveName, 'papier');
+        const v1 = document.getElementById('pap1')?.value, v2 = document.getElementById('pap2')?.value, v3 = document.getElementById('pap3')?.value, v4 = document.getElementById('pap4')?.value;
+        switch(epreuveName) {
+          case 'Pointage de cibles': session.session.score = { precision:parseFloat(v1)||0, totalSec:parseFloat(v2)||0 }; break;
+          case 'Glisser-déposer': session.session.score = { temps:parseFloat(v1)||0, erreurs:parseInt(v2)||0 }; break;
+          case 'Double-clic / Clic droit': session.session.score = { temps:parseFloat(v1)||0 }; break;
+          case 'Dictée de nombres': session.session.score = { total:parseInt(v1)||10, correct:parseInt(v2)||0 }; break;
+          case 'Calcul mental': session.session.score = { total:parseInt(v1)||8, correct:parseInt(v2)||0 }; break;
+          case 'Problèmes': session.session.score = { total:parseInt(v1)||4, correct:parseInt(v2)||0 }; break;
+          case 'Copie de texte': session.session.score = { caracteres:parseInt(v1)||0, erreurs:parseInt(v2)||0 }; break;
+          case 'Barrage visuel': session.session.score = { cibles:parseInt(v1)||25, trouvees:parseInt(v2)||0, fausses:parseInt(v3)||0, temps:parseFloat(v4)||0 }; break;
+          case 'Assemblage de formes': session.session.score = { formes:parseInt(v1)||0, temps:parseFloat(v2)||0 }; break;
+          case 'Tracé de précision': session.session.score = { temps:parseFloat(v1)||0, sorties:parseInt(v2)||0 }; break;
+          case 'Points à relier': session.session.score = { temps:parseFloat(v1)||0, erreurs:parseInt(v2)||0 }; break;
+          case 'Perception visuelle': session.session.score = { total:parseInt(v1)||10, correct:parseInt(v2)||0 }; break;
+          case 'Trail Making': session.session.score = { temps:parseFloat(v1)||0, erreurs:parseInt(v2)||0 }; break;
+          case 'Mémorisation visuelle': session.session.score = { correct:parseInt(v1)||0, errors:parseInt(v2)||0, total:6 }; break;
+        }
+        session.finish();
+        App.render(`<div class="card"><h2>Enregistré</h2><button class="btn" onclick="showEpreuves()">Menu</button></div>`);
+      });
+    }
+
+    // ========== QUESTIONNAIRE DE RESSENTI ==========
+    function askSentiment(session) {
+      App.render(`
+        <div class="card center">
+          <h2>😊 Comment t'es-tu senti(e) ?</h2>
+          <div style="display:flex; gap:1rem; justify-content:center; margin:1rem;">
+            <div class="emoji-btn" id="sent1">😊</div>
+            <div class="emoji-btn" id="sent2">😐</div>
+            <div class="emoji-btn" id="sent3">😞</div>
+          </div>
+          <button class="btn secondary" id="skipSent">Passer</button>
+        </div>
+      `);
+      document.getElementById('sent1').addEventListener('click', ()=>saveSentiment(session, '😊'));
+      document.getElementById('sent2').addEventListener('click', ()=>saveSentiment(session, '😐'));
+      document.getElementById('sent3').addEventListener('click', ()=>saveSentiment(session, '😞'));
+      document.getElementById('skipSent').addEventListener('click', ()=>showEpreuves());
+    }
+    function saveSentiment(session, sentiment) {
+      const all = JSON.parse(localStorage.getItem('ergoeval_sessions')||'[]');
+      const idx = all.findIndex(s=>s.id===session.id);
+      if(idx!==-1) { all[idx].sentiment = sentiment; localStorage.setItem('ergoeval_sessions', JSON.stringify(all)); }
+      showEpreuves();
+    }
+
+    // ========== EPREUVES (toutes fonctionnelles et corrigées) ==========
     const Epreuves = {
       Pointage: {
-        start() {
+        chooseMode() { chooseMode('Pointage de cibles', Epreuves.Pointage.start); },
+        start(mode) {
           if(!App.currentUser) return alert('Profil requis.');
-          const self = this;
+          const isTraining = (mode === 'entrainement');
           const state = { running:false, targetCount:20, current:0, hits:0, misses:0, startTime:0, times:[], sizes:[30,45,60,75], target:null, interval:null };
-          const epreuve = new Epreuve('Pointage de cibles');
+          const epreuve = new Epreuve('Pointage de cibles', 'numerique', isTraining);
           App.render(`
-            <div class="top-nav"><span class="logo">Pointage</span><button class="btn secondary" onclick="showEpreuves()">Menu</button></div>
+            <div class="top-nav"><span class="logo">Pointage ${isTraining?'(Entraînement)':''}</span><button class="btn secondary" onclick="showEpreuves()">Menu</button></div>
             <div class="card"><h2>🎯 Pointage de cibles</h2><p>Cliquez sur les cibles rouges aussi vite que possible.</p>
               <div class="timer" id="timer">00:00</div><div class="game-area" id="gameArea"></div>
               <button class="btn" id="startBtn" onclick="Epreuves.Pointage.demarrer()">Démarrer</button>
             </div>
           `);
           const area = document.getElementById('gameArea');
-          area.addEventListener('click', (e)=>self.handleClick(e, state));
-          area.addEventListener('touchstart', (e)=>{ e.preventDefault(); self.handleClick(e.touches[0], state); }, {passive:false});
-          self.state = state; self.epreuve = epreuve;
+          area.addEventListener('click', (e)=>Epreuves.Pointage.handleClick(e, state));
+          area.addEventListener('touchstart', (e)=>{ e.preventDefault(); Epreuves.Pointage.handleClick(e.touches[0], state); }, {passive:false});
+          window._ptEpreuve = epreuve; window._ptState = state;
         },
         demarrer() {
-          this.state.running = true; this.state.startTime = Date.now();
+          const state = window._ptState;
+          state.running = true; state.startTime = Date.now();
           document.getElementById('startBtn').disabled = true;
           this.nextTarget();
-          this.state.interval = setInterval(()=>{
-            if(!this.state.running) return;
-            const elapsed = Math.floor((Date.now()-this.state.startTime)/1000);
+          state.interval = setInterval(()=>{
+            if(!state.running) return;
+            const elapsed = Math.floor((Date.now()-state.startTime)/1000);
             document.getElementById('timer').textContent = `${Math.floor(elapsed/60).toString().padStart(2,'0')}:${(elapsed%60).toString().padStart(2,'0')}`;
           }, 200);
         },
         nextTarget() {
-          const s = this.state;
-          if(s.current >= s.targetCount) { this.terminer(); return; }
-          if(s.target) s.target.remove();
+          const state = window._ptState;
+          if(state.current >= state.targetCount) { Epreuves.Pointage.terminer(); return; }
+          if(state.target) state.target.remove();
           const area = document.getElementById('gameArea');
-          const size = s.sizes[Math.floor(Math.random()*s.sizes.length)];
+          const size = state.sizes[Math.floor(Math.random()*state.sizes.length)];
           const rect = area.getBoundingClientRect();
-          const x = Math.random()*(rect.width-size-4); const y = Math.random()*(rect.height-size-4);
+          const x = Math.random()*(rect.width-size-4), y = Math.random()*(rect.height-size-4);
           const t = document.createElement('div'); t.className='target';
           t.style.width=size+'px'; t.style.height=size+'px'; t.style.left=x+'px'; t.style.top=y+'px';
           t.dataset.timeStart = Date.now();
-          area.appendChild(t); s.target = t;
+          area.appendChild(t);
+          state.target = t;
         },
-        handleClick(e, s) {
-          if(!s.running || !s.target) return;
-          const t = s.target; const rect = t.getBoundingClientRect();
+        handleClick(e, state) {
+          if(!state.running || !state.target) return;
+          const t = state.target; const rect = t.getBoundingClientRect();
           const cx = rect.left+rect.width/2, cy = rect.top+rect.height/2;
           const dist = Math.hypot(e.clientX-cx, e.clientY-cy);
           const hit = dist <= rect.width/2; const now = Date.now();
-          s.times.push(now - parseInt(t.dataset.timeStart));
-          if(!hit) {
-            s.misses++; App.beep(200,300);
-            t.style.background = 'radial-gradient(circle, #f59e0b, #d97706)'; t.dataset.timeStart = now;
-          } else {
-            s.hits++; t.classList.add('clicked'); App.beep(500,150);
-            s.current++; setTimeout(()=>this.nextTarget(), 300);
-          }
+          state.times.push(now - parseInt(t.dataset.timeStart));
+          if(!hit) { state.misses++; App.beep(200,300); t.style.background='radial-gradient(circle, #f59e0b, #d97706)'; t.dataset.timeStart=now; }
+          else { state.hits++; t.classList.add('clicked'); App.beep(500,150); state.current++; setTimeout(()=>Epreuves.Pointage.nextTarget(), 300); }
         },
         terminer() {
-          const s = this.state; s.running = false; clearInterval(s.interval);
-          if(s.target) s.target.remove();
-          const total = (Date.now()-s.startTime)/1000;
-          const avg = s.times.reduce((a,b)=>a+b,0)/s.times.length || 0;
-          const prec = s.hits/(s.hits+s.misses)*100 || 0;
-          this.epreuve.session.score = { hits:s.hits, misses:s.misses, precision:Math.round(prec), avgMs:Math.round(avg), totalSec:total.toFixed(1) };
-          this.epreuve.finish();
-          App.render(`<div class="card"><h2>Résultat</h2><p>Cibles: ${s.hits}/${s.targetCount}, Précision: ${prec.toFixed(1)}%, Temps: ${total.toFixed(1)}s</p><button class="btn" onclick="showEpreuves()">Menu</button></div>`);
-        },
+          const state = window._ptState; state.running=false; clearInterval(state.interval);
+          if(state.target) state.target.remove();
+          const total = (Date.now()-state.startTime)/1000;
+          const prec = state.hits/(state.hits+state.misses)*100 || 0;
+          const epreuve = window._ptEpreuve;
+          epreuve.session.score = { hits:state.hits, misses:state.misses, precision:Math.round(prec), totalSec:total.toFixed(1) };
+          App.render(`<div class="card"><h2>Résultat</h2><p>Cibles: ${state.hits}/${state.targetCount}, Précision: ${prec.toFixed(1)}%, Temps: ${total.toFixed(1)}s</p></div>`);
+          if(!epreuve.isTraining) { epreuve.finish(); askSentiment(epreuve.session); }
+          else { setTimeout(()=>{ alert('Entraînement terminé !'); showEpreuves(); }, 100); }
+        }
       },
-
       GlisserDeposer: {
-        start() {
+        chooseMode() { chooseMode('Glisser-déposer', Epreuves.GlisserDeposer.start); },
+        start(mode) {
           if(!App.currentUser) return alert('Profil requis.');
+          const isTraining = (mode === 'entrainement');
           const items = ['🟥','🟢','🔺']; const targets = ['Carré','Rond','Triangle'];
           const state = { current:0, errors:0, startTime:Date.now(), interval:null };
-          const epreuve = new Epreuve('Glisser-déposer');
+          const epreuve = new Epreuve('Glisser-déposer', 'numerique', isTraining);
           App.render(`
-            <div class="top-nav"><span class="logo">Glisser-déposer</span><button class="btn secondary" onclick="showEpreuves()">Menu</button></div>
+            <div class="top-nav"><span class="logo">Glisser-déposer ${isTraining?'(Entraînement)':''}</span><button class="btn secondary" onclick="showEpreuves()">Menu</button></div>
             <div class="card"><h2>🖐️ Glisser-déposer</h2><p>Déposez chaque forme dans la bonne boîte.</p>
               <div class="timer" id="timer">00:00</div>
               <div style="display:flex; justify-content:space-around; margin:1rem 0;">
@@ -527,7 +572,7 @@
               </div>
             </div>
           `);
-          const srcDiv = document.getElementById('sources'); const tgtDiv = document.getElementById('targets');
+          const srcDiv = document.getElementById('sources'), tgtDiv = document.getElementById('targets');
           items.forEach((shape, i) => {
             const src = document.createElement('div'); src.textContent=shape; src.style.fontSize='3rem'; src.draggable=true;
             src.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain', i.toString()));
@@ -537,11 +582,8 @@
             tgt.addEventListener('drop', e=>{
               e.preventDefault();
               const idx = parseInt(e.dataTransfer.getData('text/plain'));
-              if(idx === i) {
-                state.current++; App.beep(600,150);
-                if(state.current === items.length) Epreuves.GlisserDeposer.terminer();
-                else { src.remove(); tgt.style.background='#d1fae5'; }
-              } else { state.errors++; App.beep(200,300); }
+              if(idx === i) { state.current++; App.beep(600,150); if(state.current===items.length) Epreuves.GlisserDeposer.terminer(); else { src.remove(); tgt.style.background='#d1fae5'; } }
+              else { state.errors++; App.beep(200,300); }
             });
             tgtDiv.appendChild(tgt);
           });
@@ -549,20 +591,23 @@
             const elapsed = Math.floor((Date.now()-state.startTime)/1000);
             document.getElementById('timer').textContent = `${Math.floor(elapsed/60).toString().padStart(2,'0')}:${(elapsed%60).toString().padStart(2,'0')}`;
           },200);
-          this.state = state; this.epreuve = epreuve;
+          window._gdEpreuve = epreuve; window._gdState = state;
         },
         terminer() {
-          clearInterval(this.state.interval);
-          const total = (Date.now()-this.state.startTime)/1000;
-          this.epreuve.session.score = { items:3, temps:total.toFixed(1), erreurs:this.state.errors };
-          this.epreuve.finish();
-          App.render(`<div class="card"><h2>Terminé</h2><p>Temps: ${total.toFixed(1)}s, Erreurs: ${this.state.errors}</p><button class="btn" onclick="showEpreuves()">Menu</button></div>`);
-        },
+          clearInterval(window._gdState.interval);
+          const total = (Date.now()-window._gdState.startTime)/1000;
+          const epreuve = window._gdEpreuve;
+          epreuve.session.score = { items:3, temps:total.toFixed(1), erreurs:window._gdState.errors };
+          App.render(`<div class="card"><h2>Terminé</h2><p>Temps: ${total.toFixed(1)}s, Erreurs: ${window._gdState.errors}</p></div>`);
+          if(!epreuve.isTraining) { epreuve.finish(); askSentiment(epreuve.session); }
+          else { setTimeout(()=>{ alert('Entraînement terminé !'); showEpreuves(); }, 100); }
+        }
       },
-
       DoubleClic: {
-        start() {
+        chooseMode() { chooseMode('Double-clic / Clic droit', Epreuves.DoubleClic.start); },
+        start(mode) {
           if(!App.currentUser) return alert('Profil requis.');
+          const isTraining = (mode === 'entrainement');
           const essais = [
             {type:'double', consigne:'Double-cliquez sur le dossier', icon:'📁'},
             {type:'right', consigne:'Faites un clic droit sur l\'étoile', icon:'⭐'},
@@ -570,325 +615,219 @@
             {type:'right', consigne:'Faites un clic droit sur le soleil', icon:'☀️'}
           ];
           const state = { essais, current:0, times:[], startTime:Date.now() };
-          const epreuve = new Epreuve('Double-clic / Clic droit');
+          const epreuve = new Epreuve('Double-clic / Clic droit', 'numerique', isTraining);
           App.render(`
-            <div class="top-nav"><span class="logo">Double-clic</span><button class="btn secondary" onclick="showEpreuves()">Menu</button></div>
-            <div class="card center"><h2>🖱️ Double-clic / Clic droit</h2>
-              <p id="consigne"></p><div id="icon" style="font-size:5rem; cursor:pointer;"></div>
-            </div>
+            <div class="top-nav"><span class="logo">Double-clic ${isTraining?'(Entraînement)':''}</span><button class="btn secondary" onclick="showEpreuves()">Menu</button></div>
+            <div class="card center"><h2>🖱️ Double-clic / Clic droit</h2><p id="consigne"></p><div id="icon" style="font-size:5rem; cursor:pointer;"></div></div>
           `);
-          this.state = state; this.epreuve = epreuve; this.afficher();
+          window._dcState = state; window._dcEpreuve = epreuve;
+          Epreuves.DoubleClic.afficher();
         },
         afficher() {
-          const s = this.state;
-          if(s.current >= s.essais.length) { this.terminer(); return; }
+          const s = window._dcState;
+          if(s.current >= s.essais.length) { Epreuves.DoubleClic.terminer(); return; }
           const essai = s.essais[s.current];
           document.getElementById('consigne').textContent = essai.consigne;
           const icon = document.getElementById('icon'); icon.textContent = essai.icon;
           icon.onclick = null; icon.ondblclick = null; icon.oncontextmenu = null;
           if(essai.type === 'double') {
-            icon.ondblclick = (e) => { e.preventDefault(); s.times.push(Date.now()-s.startTime); s.current++; App.beep(600,150); this.afficher(); };
+            icon.ondblclick = (e) => { e.preventDefault(); s.times.push(Date.now()-s.startTime); s.current++; App.beep(600,150); Epreuves.DoubleClic.afficher(); };
           } else {
-            icon.oncontextmenu = (e) => { e.preventDefault(); s.times.push(Date.now()-s.startTime); s.current++; App.beep(600,150); this.afficher(); };
+            icon.oncontextmenu = (e) => { e.preventDefault(); s.times.push(Date.now()-s.startTime); s.current++; App.beep(600,150); Epreuves.DoubleClic.afficher(); };
           }
         },
         terminer() {
-          const total = (Date.now()-this.state.startTime)/1000;
-          this.epreuve.session.score = { essais:this.state.essais.length, temps:total.toFixed(1) };
-          this.epreuve.finish();
-          App.render(`<div class="card"><h2>Terminé</h2><p>Temps: ${total.toFixed(1)}s</p><button class="btn" onclick="showEpreuves()">Menu</button></div>`);
+          const total = (Date.now()-window._dcState.startTime)/1000;
+          const epreuve = window._dcEpreuve;
+          epreuve.session.score = { temps:total.toFixed(1) };
+          App.render(`<div class="card"><h2>Terminé</h2><p>Temps: ${total.toFixed(1)}s</p></div>`);
+          if(!epreuve.isTraining) { epreuve.finish(); askSentiment(epreuve.session); }
+          else { setTimeout(()=>{ alert('Entraînement terminé !'); showEpreuves(); }, 100); }
         }
       },
-
       Dictee: {
-        start() {
+        chooseMode() { chooseMode('Dictée de nombres', Epreuves.Dictee.start); },
+        start(mode) {
           if(!App.currentUser) return alert('Profil requis.');
+          const isTraining = (mode === 'entrainement');
           const nombres = ['482','73','1056','29','630','8147','59','302','978','1500'];
           const state = { nombres, current:0, responses:[] };
-          const epreuve = new Epreuve('Dictée de nombres');
+          const epreuve = new Epreuve('Dictée de nombres', 'numerique', isTraining);
           App.render(`
-            <div class="top-nav"><span class="logo">Dictée</span><button class="btn secondary" onclick="showEpreuves()">Menu</button></div>
+            <div class="top-nav"><span class="logo">Dictée ${isTraining?'(Entraînement)':''}</span><button class="btn secondary" onclick="showEpreuves()">Menu</button></div>
             <div class="card"><h2>🔢 Dictée de nombres</h2><p>Écoutez et tapez le nombre entendu.</p>
               <div id="dnPlay" style="font-size:2rem; cursor:pointer;" onclick="Epreuves.Dictee.lire()">🔊</div>
               <input id="dnInput" style="width:200px;"><button class="btn" onclick="Epreuves.Dictee.valider()">Valider</button>
               <p id="dnProgress">1/${nombres.length}</p>
             </div>
           `);
-          this.state = state; this.epreuve = epreuve; this.lire();
+          window._dnState = state; window._dnEpreuve = epreuve;
+          Epreuves.Dictee.lire();
         },
         lire() {
-          const nb = this.state.nombres[this.state.current];
+          const nb = window._dnState.nombres[window._dnState.current];
           if('speechSynthesis' in window) {
             const u = new SpeechSynthesisUtterance(nb); u.lang='fr-FR'; u.rate=0.9; speechSynthesis.speak(u);
           } else { document.getElementById('dnPlay').textContent = nb; }
         },
         valider() {
-          const s = this.state;
+          const s = window._dnState;
           const val = document.getElementById('dnInput').value.trim();
           const expected = s.nombres[s.current];
           s.responses.push({ expected, given:val, correct:val===expected });
           s.current++;
-          if(s.current >= s.nombres.length) {
-            const correct = s.responses.filter(r=>r.correct).length;
-            this.epreuve.session.score = { total:s.nombres.length, correct, erreurs:s.nombres.length-correct };
-            this.epreuve.finish();
-            App.render(`<div class="card"><h2>Résultat</h2><p>Correct: ${correct}/${s.nombres.length}</p><button class="btn" onclick="showEpreuves()">Menu</button></div>`);
-          } else {
-            document.getElementById('dnInput').value = '';
-            document.getElementById('dnProgress').textContent = `${s.current+1}/${s.nombres.length}`; this.lire();
-          }
+          if(s.current >= s.nombres.length) { Epreuves.Dictee.terminer(); }
+          else { document.getElementById('dnInput').value=''; document.getElementById('dnProgress').textContent=`${s.current+1}/${s.nombres.length}`; Epreuves.Dictee.lire(); }
+        },
+        terminer() {
+          const s = window._dnState;
+          const correct = s.responses.filter(r=>r.correct).length;
+          const epreuve = window._dnEpreuve;
+          epreuve.session.score = { total:s.nombres.length, correct, erreurs:s.nombres.length-correct };
+          App.render(`<div class="card"><h2>Résultat</h2><p>Correct: ${correct}/${s.nombres.length}</p></div>`);
+          if(!epreuve.isTraining) { epreuve.finish(); askSentiment(epreuve.session); }
+          else { setTimeout(()=>{ alert('Entraînement terminé !'); showEpreuves(); }, 100); }
         }
       },
-
       CalculMental: {
-        start() {
+        chooseMode() { chooseMode('Calcul mental', Epreuves.CalculMental.start); },
+        start(mode) {
           if(!App.currentUser) return alert('Profil requis.');
-          const ops = [
-            {q:'12 + 9', a:21},
-            {q:'34 - 16', a:18},
-            {q:'5 × 7', a:35},
-            {q:'27 + 15', a:42},
-            {q:'63 - 28', a:35},
-            {q:'8 × 6', a:48},
-            {q:'100 - 45', a:55},
-            {q:'9 × 4', a:36}
-          ];
+          const isTraining = (mode === 'entrainement');
+          const ops = [{q:'12+9',a:21},{q:'34-16',a:18},{q:'5×7',a:35},{q:'27+15',a:42},{q:'63-28',a:35},{q:'8×6',a:48},{q:'100-45',a:55},{q:'9×4',a:36}];
           const state = { ops, current:0, responses:[] };
-          const epreuve = new Epreuve('Calcul mental');
+          const epreuve = new Epreuve('Calcul mental', 'numerique', isTraining);
           App.render(`
-            <div class="top-nav"><span class="logo">Calcul</span><button class="btn secondary" onclick="showEpreuves()">Menu</button></div>
+            <div class="top-nav"><span class="logo">Calcul ${isTraining?'(Entraînement)':''}</span><button class="btn secondary" onclick="showEpreuves()">Menu</button></div>
             <div class="card center"><h2>🧮 Calcul mental</h2><p>Résolvez l'opération et validez.</p>
-              <div id="cmOp" style="font-size:2rem;"></div>
-              <input type="number" id="cmInput" style="width:120px;">
-              <button class="btn" onclick="Epreuves.CalculMental.valider()">Valider</button>
+              <div id="cmOp" style="font-size:2rem;"></div><input type="number" id="cmInput" style="width:120px;"><button class="btn" onclick="Epreuves.CalculMental.valider()">Valider</button>
               <p id="cmProgress">1/${ops.length}</p>
             </div>
           `);
-          this.state = state; this.epreuve = epreuve; this.afficher();
+          window._cmState = state; window._cmEpreuve = epreuve;
+          Epreuves.CalculMental.afficher();
         },
-        afficher() {
-          const s = this.state;
-          if(s.current >= s.ops.length) { this.terminer(); return; }
-          document.getElementById('cmOp').textContent = s.ops[s.current].q;
-          document.getElementById('cmInput').value = ''; document.getElementById('cmInput').focus();
-        },
-        valider() {
-          const s = this.state;
-          const val = parseInt(document.getElementById('cmInput').value);
-          const expected = s.ops[s.current].a;
-          s.responses.push({ expected, given:val, correct:val===expected });
-          s.current++;
-          if(s.current >= s.ops.length) this.terminer();
-          else { document.getElementById('cmProgress').textContent = `${s.current+1}/${s.ops.length}`; this.afficher(); }
-        },
-        terminer() {
-          const correct = this.state.responses.filter(r=>r.correct).length;
-          this.epreuve.session.score = { total:this.state.ops.length, correct, erreurs:this.state.ops.length-correct };
-          this.epreuve.finish();
-          App.render(`<div class="card"><h2>Résultat</h2><p>Correct: ${correct}/${this.state.ops.length}</p><button class="btn" onclick="showEpreuves()">Menu</button></div>`);
-        }
+        afficher() { const s=window._cmState; if(s.current>=s.ops.length){Epreuves.CalculMental.terminer();return;} document.getElementById('cmOp').textContent=s.ops[s.current].q; document.getElementById('cmInput').value=''; document.getElementById('cmInput').focus(); },
+        valider() { const s=window._cmState; const val=parseInt(document.getElementById('cmInput').value); const expected=s.ops[s.current].a; s.responses.push({expected,given:val,correct:val===expected}); s.current++; if(s.current>=s.ops.length)Epreuves.CalculMental.terminer(); else{document.getElementById('cmProgress').textContent=`${s.current+1}/${s.ops.length}`;Epreuves.CalculMental.afficher();} },
+        terminer() { const correct=window._cmState.responses.filter(r=>r.correct).length; const epreuve=window._cmEpreuve; epreuve.session.score={total:window._cmState.ops.length,correct,erreurs:window._cmState.ops.length-correct}; App.render(`<div class="card"><h2>Résultat</h2><p>Correct: ${correct}/${window._cmState.ops.length}</p></div>`); if(!epreuve.isTraining){epreuve.finish();askSentiment(epreuve.session);}else{setTimeout(()=>{alert('Entraînement terminé !');showEpreuves();},100);} }
       },
-
       Problemes: {
-        start() {
+        chooseMode() { chooseMode('Problèmes', Epreuves.Problemes.start); },
+        start(mode) {
           if(!App.currentUser) return alert('Profil requis.');
-          const pb = [
-            {enonce:'Paul a 15 billes. Il en donne 6. Combien reste-t-il ?', rep:9},
-            {enonce:'Marie a 3 paquets de 4 bonbons. Combien ?', rep:12},
-            {enonce:'Un livre coûte 8€. Combien pour 5 ?', rep:40},
-            {enonce:'Bus : 24 passagers, 7 descendent. Restent ?', rep:17}
-          ];
+          const isTraining = (mode === 'entrainement');
+          const pb = [{enonce:'Paul a 15 billes. Il en donne 6. Combien reste-t-il ?', rep:9},{enonce:'Marie a 3 paquets de 4 bonbons. Combien ?', rep:12},{enonce:'Un livre coûte 8€. Combien pour 5 ?', rep:40},{enonce:'Bus : 24 passagers, 7 descendent. Restent ?', rep:17}];
           const state = { pb, current:0, responses:[] };
-          const epreuve = new Epreuve('Problèmes');
+          const epreuve = new Epreuve('Problèmes', 'numerique', isTraining);
           App.render(`
-            <div class="top-nav"><span class="logo">Problèmes</span><button class="btn secondary" onclick="showEpreuves()">Menu</button></div>
-            <div class="card"><h2>📝 Résolution de problèmes</h2>
-              <p id="pbEnonce" style="font-size:1.2rem;"></p>
-              <input type="number" id="pbInput" style="width:100px;">
-              <button class="btn" onclick="Epreuves.Problemes.valider()">Valider</button>
-              <p id="pbProgress">1/${pb.length}</p>
-            </div>
+            <div class="top-nav"><span class="logo">Problèmes ${isTraining?'(Entraînement)':''}</span><button class="btn secondary" onclick="showEpreuves()">Menu</button></div>
+            <div class="card"><h2>📝 Résolution de problèmes</h2><p id="pbEnonce" style="font-size:1.2rem;"></p><input type="number" id="pbInput" style="width:100px;"><button class="btn" onclick="Epreuves.Problemes.valider()">Valider</button><p id="pbProgress">1/${pb.length}</p></div>
           `);
-          this.state = state; this.epreuve = epreuve; this.afficher();
+          window._pbState = state; window._pbEpreuve = epreuve;
+          Epreuves.Problemes.afficher();
         },
-        afficher() {
-          const s = this.state;
-          if(s.current >= s.pb.length) { this.terminer(); return; }
-          document.getElementById('pbEnonce').textContent = s.pb[s.current].enonce;
-          document.getElementById('pbInput').value = '';
-        },
-        valider() {
-          const s = this.state;
-          const val = parseInt(document.getElementById('pbInput').value);
-          s.responses.push({ expected:s.pb[s.current].rep, given:val, correct:val===s.pb[s.current].rep });
-          s.current++;
-          if(s.current >= s.pb.length) this.terminer();
-          else { document.getElementById('pbProgress').textContent = `${s.current+1}/${s.pb.length}`; this.afficher(); }
-        },
-        terminer() {
-          const correct = this.state.responses.filter(r=>r.correct).length;
-          this.epreuve.session.score = { total:this.state.pb.length, correct, erreurs:this.state.pb.length-correct };
-          this.epreuve.finish();
-          App.render(`<div class="card"><h2>Résultat</h2><p>Correct: ${correct}/${this.state.pb.length}</p><button class="btn" onclick="showEpreuves()">Menu</button></div>`);
-        }
+        afficher() { const s=window._pbState; if(s.current>=s.pb.length){Epreuves.Problemes.terminer();return;} document.getElementById('pbEnonce').textContent=s.pb[s.current].enonce; document.getElementById('pbInput').value=''; },
+        valider() { const s=window._pbState; const val=parseInt(document.getElementById('pbInput').value); s.responses.push({expected:s.pb[s.current].rep,given:val,correct:val===s.pb[s.current].rep}); s.current++; if(s.current>=s.pb.length)Epreuves.Problemes.terminer(); else{document.getElementById('pbProgress').textContent=`${s.current+1}/${s.pb.length}`;Epreuves.Problemes.afficher();} },
+        terminer() { const correct=window._pbState.responses.filter(r=>r.correct).length; const epreuve=window._pbEpreuve; epreuve.session.score={total:window._pbState.pb.length,correct,erreurs:window._pbState.pb.length-correct}; App.render(`<div class="card"><h2>Résultat</h2><p>Correct: ${correct}/${window._pbState.pb.length}</p></div>`); if(!epreuve.isTraining){epreuve.finish();askSentiment(epreuve.session);}else{setTimeout(()=>{alert('Entraînement terminé !');showEpreuves();},100);} }
       },
-
       CopieTexte: {
-        start() {
+        chooseMode() { chooseMode('Copie de texte', Epreuves.CopieTexte.start); },
+        start(mode) {
+          if(!App.currentUser) return alert('Profil requis.');
+          const isTraining = (mode === 'entrainement');
           App.render(`
-            <div class="top-nav"><span class="logo">Copie</span><button class="btn secondary" onclick="showEpreuves()">Menu</button></div>
-            <div class="card"><h2>✍️ Copie de texte</h2>
-              <button class="btn" onclick="Epreuves.CopieTexte.numerique()">💻 Numérique</button>
-              <button class="btn" onclick="Epreuves.CopieTexte.papier()">📄 Papier</button>
-            </div>
-          `);
-        },
-        numerique() {
-          const texte = "Le petit chat dort sur le tapis rouge. Il fait un rêve étrange où il court après une souris verte.";
-          const state = { texte, corrections:0, startTime:null, interval:null };
-          const epreuve = new Epreuve('Copie de texte');
-          App.render(`
-            <div class="card"><h2>Copie numérique</h2><p>Recopiez le texte ci-dessous. Appuyez sur <b>Entrée</b> ou cliquez sur <b>Valider</b> pour terminer.</p>
-              <blockquote style="background:var(--bg); padding:1rem; border-radius:8px;">${texte}</blockquote>
-              <textarea id="ctInput" rows="4" style="width:100%" disabled placeholder="Cliquez sur Démarrer puis tapez..."></textarea>
+            <div class="top-nav"><span class="logo">Copie ${isTraining?'(Entraînement)':''}</span><button class="btn secondary" onclick="showEpreuves()">Menu</button></div>
+            <div class="card"><h2>✍️ Copie de texte</h2><p>Recopiez le texte. Appuyez sur <b>Entrée</b> ou <b>Valider</b> pour terminer.</p>
+              <blockquote style="background:var(--bg); padding:1rem; border-radius:8px;">Le petit chat dort sur le tapis rouge. Il fait un rêve étrange où il court après une souris verte.</blockquote>
+              <textarea id="ctInput" rows="4" style="width:100%" disabled placeholder="Cliquez sur Démarrer..."></textarea>
               <div class="timer" id="timer">00:00</div>
-              <button class="btn" id="startBtn" onclick="Epreuves.CopieTexte.demarrerNum()">Démarrer</button>
-              <button class="btn success" id="submitBtn" onclick="Epreuves.CopieTexte.validerNum()" disabled>Valider</button>
-              <button class="btn secondary" onclick="showEpreuves()">Menu</button>
+              <button class="btn" id="startBtn" onclick="Epreuves.CopieTexte.demarrer()">Démarrer</button>
+              <button class="btn success" id="submitBtn" onclick="Epreuves.CopieTexte.valider()" disabled>Valider</button>
             </div>
           `);
-          window._ctState = state; window._ctEpreuve = epreuve;
+          window._ctIsTraining = isTraining;
+          window._ctState = { texte: "Le petit chat dort sur le tapis rouge. Il fait un rêve étrange où il court après une souris verte.", corrections:0, startTime:null, interval:null };
+          window._ctEpreuve = new Epreuve('Copie de texte', 'numerique', isTraining);
         },
-        demarrerNum() {
+        demarrer() {
           const state = window._ctState;
           state.startTime = Date.now();
-          document.getElementById('ctInput').disabled = false;
-          document.getElementById('ctInput').focus();
-          document.getElementById('startBtn').disabled = true;
-          document.getElementById('submitBtn').disabled = false;
-          document.getElementById('ctInput').addEventListener('keydown', (e) => {
-            if(e.key === 'Backspace') state.corrections++;
-            if(e.key === 'Enter') {
-              e.preventDefault();
-              Epreuves.CopieTexte.validerNum();
-            }
-          });
-          state.interval = setInterval(()=>{
-            const elapsed = Math.floor((Date.now()-state.startTime)/1000);
-            document.getElementById('timer').textContent = `${Math.floor(elapsed/60).toString().padStart(2,'0')}:${(elapsed%60).toString().padStart(2,'0')}`;
-          },200);
-          setTimeout(() => {
-            if(window._ctState) Epreuves.CopieTexte.validerNum();
-          }, 300000);
+          document.getElementById('ctInput').disabled = false; document.getElementById('ctInput').focus();
+          document.getElementById('startBtn').disabled = true; document.getElementById('submitBtn').disabled = false;
+          document.getElementById('ctInput').addEventListener('keydown', (e) => { if(e.key==='Backspace') state.corrections++; if(e.key==='Enter') { e.preventDefault(); Epreuves.CopieTexte.valider(); } });
+          state.interval = setInterval(()=>{ const elapsed = Math.floor((Date.now()-state.startTime)/1000); document.getElementById('timer').textContent = `${Math.floor(elapsed/60).toString().padStart(2,'0')}:${(elapsed%60).toString().padStart(2,'0')}`; },200);
+          setTimeout(() => { if(window._ctState) Epreuves.CopieTexte.valider(); }, 300000);
         },
-        validerNum() {
+        valider() {
           if(!window._ctState || !window._ctState.startTime) return;
           clearInterval(window._ctState.interval);
-          const texteOriginal = window._ctState.texte;
           const texteSaisi = document.getElementById('ctInput').value.trim();
-          const temps = (Date.now() - window._ctState.startTime) / 1000;
-          const motsOriginaux = texteOriginal.split(/\s+/).filter(m=>m.length>0);
+          const temps = (Date.now() - window._ctState.startTime)/1000;
+          const motsOriginaux = window._ctState.texte.split(/\s+/).filter(m=>m.length>0);
           const motsSaisis = texteSaisi.split(/\s+/).filter(m=>m.length>0);
           const nbMots = motsSaisis.length;
-          const wpm = nbMots / (temps / 60);
+          const wpm = nbMots/(temps/60);
           let erreurs = 0;
           const maxLen = Math.max(motsOriginaux.length, motsSaisis.length);
-          for(let i=0; i<maxLen; i++) {
-            if(motsOriginaux[i] !== motsSaisis[i]) erreurs++;
-          }
+          for(let i=0;i<maxLen;i++) { if(motsOriginaux[i]!==motsSaisis[i]) erreurs++; }
           erreurs += window._ctState.corrections;
-          window._ctEpreuve.session.score = { mots:nbMots, temps:temps.toFixed(1), wpm:Math.round(wpm), erreurs };
-          window._ctEpreuve.finish();
-          App.render(`<div class="card"><h2>Résultat Copie</h2>
-            <p>Mots : ${nbMots} en ${temps.toFixed(1)}s (${Math.round(wpm)} mots/min)</p>
-            <p>Erreurs (différences + corrections) : ${erreurs}</p>
-            <button class="btn" onclick="showEpreuves()">Menu</button></div>`);
-          delete window._ctState; delete window._ctEpreuve;
-        },
-        papier() {
-          App.render(`
-            <div class="card"><h2>Copie papier</h2>
-              <p>Faites copier le texte suivant :</p>
-              <blockquote style="background:var(--bg); padding:1rem; border-radius:8px;">Le petit chat dort sur le tapis rouge. Il fait un rêve étrange où il court après une souris verte.</blockquote>
-              <label>Nombre de caractères produits : <input type="number" id="papChars" min="0"></label>
-              <label>Nombre d'erreurs : <input type="number" id="papErr" min="0"></label>
-              <button class="btn" onclick="Epreuves.CopieTexte.enregPapier()">Enregistrer</button>
-              <button class="btn secondary" onclick="showEpreuves()">Menu</button>
-            </div>`);
-        },
-        enregPapier() {
-          const chars = parseInt(document.getElementById('papChars').value)||0;
-          const err = parseInt(document.getElementById('papErr').value)||0;
-          const session = new Epreuve('Copie de texte', 'papier');
-          session.session.score = { caracteres:chars, erreurs:err };
-          session.finish();
-          App.render(`<div class="card"><h2>Enregistré</h2><button class="btn" onclick="showEpreuves()">Menu</button></div>`);
+          const epreuve = window._ctEpreuve;
+          epreuve.session.score = { mots:nbMots, temps:temps.toFixed(1), wpm:Math.round(wpm), erreurs };
+          App.render(`<div class="card"><h2>Résultat Copie</h2><p>Mots: ${nbMots} en ${temps.toFixed(1)}s (${Math.round(wpm)} mots/min), Erreurs: ${erreurs}</p></div>`);
+          if(!epreuve.isTraining) { epreuve.finish(); askSentiment(epreuve.session); }
+          else { setTimeout(()=>{ alert('Entraînement terminé !'); showEpreuves(); }, 100); }
         }
       },
-
       Barrage: {
-        start() {
+        chooseMode() { chooseMode('Barrage visuel', Epreuves.Barrage.start); },
+        start(mode) {
           if(!App.currentUser) return alert('Profil requis.');
+          const isTraining = (mode === 'entrainement');
           const icons = ['🔔','🚗','🏠','🌙'];
-          let grid = [];
-          for(let i=0;i<100;i++) grid.push(Math.random()<0.25 ? icons[0] : icons[Math.floor(Math.random()*3)+1]);
+          let grid = []; for(let i=0;i<100;i++) grid.push(Math.random()<0.25 ? icons[0] : icons[Math.floor(Math.random()*3)+1]);
           const state = { grid, cibles:grid.filter(g=>g===icons[0]).length, trouvees:0, fausses:0, startTime:Date.now(), interval:null };
-          const epreuve = new Epreuve('Barrage visuel');
+          const epreuve = new Epreuve('Barrage visuel', 'numerique', isTraining);
           App.render(`
-            <div class="top-nav"><span class="logo">Barrage</span><button class="btn secondary" onclick="showEpreuves()">Menu</button></div>
+            <div class="top-nav"><span class="logo">Barrage ${isTraining?'(Entraînement)':''}</span><button class="btn secondary" onclick="showEpreuves()">Menu</button></div>
             <div class="card"><h2>🔍 Barrage visuel</h2><p>Cliquez sur toutes les cloches 🔔, puis "Terminé".</p>
-              <div class="timer" id="timer">00:00</div>
-              <div id="bvGrid" style="display:grid; grid-template-columns:repeat(10,1fr); gap:4px;"></div>
+              <div class="timer" id="timer">00:00</div><div id="bvGrid" style="display:grid; grid-template-columns:repeat(10,1fr); gap:4px;"></div>
               <button class="btn success" onclick="Epreuves.Barrage.terminer()">✅ Terminé</button>
             </div>
           `);
           const gridEl = document.getElementById('bvGrid');
           grid.forEach((icon, idx) => {
             const cell = document.createElement('div'); cell.className='grid-cell'; cell.textContent=icon;
-            cell.addEventListener('click', ()=>{
-              if(cell.classList.contains('selected')) {
-                cell.classList.remove('selected');
-                if(icon===icons[0]) state.trouvees--; else state.fausses--;
-              } else {
-                cell.classList.add('selected');
-                if(icon===icons[0]) state.trouvees++; else state.fausses++;
-              }
-            });
+            cell.addEventListener('click', ()=>{ if(cell.classList.contains('selected')){cell.classList.remove('selected'); if(icon===icons[0])state.trouvees--; else state.fausses--;} else{cell.classList.add('selected'); if(icon===icons[0])state.trouvees++; else state.fausses++;} });
             gridEl.appendChild(cell);
           });
-          state.interval = setInterval(()=>{
-            const elapsed = Math.floor((Date.now()-state.startTime)/1000);
-            document.getElementById('timer').textContent = `${Math.floor(elapsed/60).toString().padStart(2,'0')}:${(elapsed%60).toString().padStart(2,'0')}`;
-          },200);
+          state.interval = setInterval(()=>{ const elapsed = Math.floor((Date.now()-state.startTime)/1000); document.getElementById('timer').textContent = `${Math.floor(elapsed/60).toString().padStart(2,'0')}:${(elapsed%60).toString().padStart(2,'0')}`; },200);
           window._bvState = state; window._bvEpreuve = epreuve;
         },
         terminer() {
           clearInterval(window._bvState.interval);
           const s = window._bvState; const temps = (Date.now()-s.startTime)/1000;
-          window._bvEpreuve.session.score = { cibles:s.cibles, trouvees:s.trouvees, fausses:s.fausses, temps:temps.toFixed(1) };
-          window._bvEpreuve.finish();
-          App.render(`<div class="card"><h2>Résultat</h2><p>Trouvées: ${s.trouvees}/${s.cibles}, Fausses: ${s.fausses}</p><button class="btn" onclick="showEpreuves()">Menu</button></div>`);
+          const epreuve = window._bvEpreuve;
+          epreuve.session.score = { cibles:s.cibles, trouvees:s.trouvees, fausses:s.fausses, temps:temps.toFixed(1) };
+          App.render(`<div class="card"><h2>Résultat</h2><p>Trouvées: ${s.trouvees}/${s.cibles}, Fausses: ${s.fausses}</p></div>`);
+          if(!epreuve.isTraining) { epreuve.finish(); askSentiment(epreuve.session); }
+          else { setTimeout(()=>{ alert('Entraînement terminé !'); showEpreuves(); }, 100); }
         }
       },
-
       Assemblage: {
-        start() {
+        chooseMode() { chooseMode('Assemblage de formes', Epreuves.Assemblage.start); },
+        start(mode) {
           if(!App.currentUser) return alert('Profil requis.');
+          const isTraining = (mode === 'entrainement');
           const state = { formes: [], startTime: Date.now() };
-          const epreuve = new Epreuve('Assemblage de formes');
+          const epreuve = new Epreuve('Assemblage de formes', 'numerique', isTraining);
           App.render(`
-            <div class="card"><h2>🧩 Assemblage de formes</h2><p>Glissez les formes pour reproduire la maison. Vous pouvez déplacer les formes déjà placées.</p>
-              <div style="display:flex; gap:1rem;">
-                <div><strong>Modèle</strong><svg width="120" height="120"><rect x="20" y="35" width="80" height="55" fill="none" stroke="black" stroke-width="2"/><polygon points="60,5 100,35 20,35" fill="none" stroke="black" stroke-width="2"/><circle cx="60" cy="60" r="15" fill="none" stroke="black" stroke-width="2"/></svg></div>
-                <div style="flex:1">
-                  <div id="palette" style="display:flex; gap:0.5rem;">
-                    <div class="palette-item" style="background:#e53935; width:60px; height:45px;" draggable="true" data-shape="rect" data-w="80" data-h="55"></div>
-                    <div class="palette-item" style="width:0;height:0;border-left:25px solid transparent;border-right:25px solid transparent;border-bottom:40px solid #43a047;" draggable="true" data-shape="triangle" data-w="50" data-h="40"></div>
-                    <div class="palette-item" style="background:#1e88e5; border-radius:50%; width:35px; height:35px;" draggable="true" data-shape="circle" data-w="35" data-h="35"></div>
-                  </div>
-                  <div id="dropzone" class="construction-zone"></div>
-                </div>
-              </div>
+            <div class="card"><h2>🧩 Assemblage de formes ${isTraining?'(Entraînement)':''}</h2><p>Glissez les formes pour reproduire la maison.</p>
+              <div style="display:flex; gap:1rem;"><div><strong>Modèle</strong><svg width="120" height="120"><rect x="20" y="35" width="80" height="55" fill="none" stroke="black" stroke-width="2"/><polygon points="60,5 100,35 20,35" fill="none" stroke="black" stroke-width="2"/><circle cx="60" cy="60" r="15" fill="none" stroke="black" stroke-width="2"/></svg></div>
+              <div style="flex:1"><div id="palette" style="display:flex; gap:0.5rem;">
+                <div class="palette-item" style="background:#e53935; width:60px; height:45px;" draggable="true" data-shape="rect" data-w="80" data-h="55"></div>
+                <div class="palette-item" style="width:0;height:0;border-left:25px solid transparent;border-right:25px solid transparent;border-bottom:40px solid #43a047;" draggable="true" data-shape="triangle" data-w="50" data-h="40"></div>
+                <div class="palette-item" style="background:#1e88e5; border-radius:50%; width:35px; height:35px;" draggable="true" data-shape="circle" data-w="35" data-h="35"></div>
+              </div><div id="dropzone" class="construction-zone"></div></div></div>
               <button class="btn success" onclick="Epreuves.Assemblage.terminer()">Valider</button>
               <button class="btn secondary" onclick="showEpreuves()">Menu</button>
             </div>
@@ -898,49 +837,38 @@
             e.preventDefault();
             const data = JSON.parse(e.dataTransfer.getData('text/plain'));
             const rect = document.getElementById('dropzone').getBoundingClientRect();
-            const x = e.clientX - rect.left - data.w/2, y = e.clientY - rect.top - data.h/2;
-            const el = document.createElement('div'); el.className='shape-on-zone'; el.style.left=x+'px'; el.style.top=y+'px';
-            if(data.shape==='rect') { el.style.width=data.w+'px'; el.style.height=data.h+'px'; el.style.background='#e53935'; }
-            else if(data.shape==='triangle') { el.style.borderLeft='25px solid transparent'; el.style.borderRight='25px solid transparent'; el.style.borderBottom='40px solid #43a047'; }
-            else if(data.shape==='circle') { el.style.width=data.w+'px'; el.style.height=data.h+'px'; el.style.background='#1e88e5'; el.style.borderRadius='50%'; }
+            const el = document.createElement('div'); el.className='shape-on-zone'; el.style.left=(e.clientX-rect.left-data.w/2)+'px'; el.style.top=(e.clientY-rect.top-data.h/2)+'px';
+            if(data.shape==='rect'){el.style.width=data.w+'px';el.style.height=data.h+'px';el.style.background='#e53935';}
+            else if(data.shape==='triangle'){el.style.borderLeft='25px solid transparent';el.style.borderRight='25px solid transparent';el.style.borderBottom='40px solid #43a047';}
+            else{el.style.width=data.w+'px';el.style.height=data.h+'px';el.style.background='#1e88e5';el.style.borderRadius='50%';}
             el.addEventListener('mousedown', startDragShape); el.addEventListener('touchstart', startDragShape, {passive:false});
             document.getElementById('dropzone').appendChild(el);
-            state.formes.push({shape:data.shape, x, y});
+            state.formes.push({shape:data.shape, x:0, y:0});
           });
-          document.querySelectorAll('.palette-item').forEach(item=>{
-            item.addEventListener('dragstart', e=>e.dataTransfer.setData('text/plain', JSON.stringify({shape:item.dataset.shape, w:parseInt(item.dataset.w), h:parseInt(item.dataset.h)})));
-          });
+          document.querySelectorAll('.palette-item').forEach(item=>{ item.addEventListener('dragstart', e=>e.dataTransfer.setData('text/plain', JSON.stringify({shape:item.dataset.shape, w:parseInt(item.dataset.w), h:parseInt(item.dataset.h)}))); });
           window._afState = state; window._afEpreuve = epreuve;
         },
         terminer() {
           const temps = (Date.now()-window._afState.startTime)/1000;
-          window._afEpreuve.session.score = { formes:window._afState.formes.length, temps:temps.toFixed(1) };
-          window._afEpreuve.finish();
-          App.render(`<div class="card"><h2>Assemblage terminé</h2><button class="btn" onclick="showEpreuves()">Menu</button></div>`);
+          const epreuve = window._afEpreuve;
+          epreuve.session.score = { formes:window._afState.formes.length, temps:temps.toFixed(1) };
+          App.render(`<div class="card"><h2>Assemblage terminé</h2></div>`);
+          if(!epreuve.isTraining) { epreuve.finish(); askSentiment(epreuve.session); }
+          else { setTimeout(()=>{ alert('Entraînement terminé !'); showEpreuves(); }, 100); }
         }
       },
-
       TracePrecision: {
-        start() {
+        chooseMode() { chooseMode('Tracé de précision', Epreuves.TracePrecision.start); },
+        start(mode) {
           if(!App.currentUser) return alert('Profil requis.');
+          const isTraining = (mode === 'entrainement');
           const w=800, h=350;
-          const pointsBruts = [];
-          for(let i=0;i<=20;i++) pointsBruts.push({x:40+i*35, y:h/2 + Math.sin(i*0.8)*100});
-          const path = [];
-          for(let i=0;i<200;i++) {
-            const t = i/199;
-            const idx = t*(pointsBruts.length-1);
-            const idx0 = Math.floor(idx);
-            const idx1 = Math.min(idx0+1, pointsBruts.length-1);
-            const frac = idx - idx0;
-            const x = pointsBruts[idx0].x + (pointsBruts[idx1].x - pointsBruts[idx0].x)*frac;
-            const y = pointsBruts[idx0].y + (pointsBruts[idx1].y - pointsBruts[idx0].y)*frac;
-            path.push({x,y});
-          }
+          const pointsBruts = []; for(let i=0;i<=20;i++) pointsBruts.push({x:40+i*35, y:h/2 + Math.sin(i*0.8)*100});
+          const path = []; for(let i=0;i<200;i++){ const t=i/199; const idx=t*(pointsBruts.length-1); const idx0=Math.floor(idx); const idx1=Math.min(idx0+1,pointsBruts.length-1); const frac=idx-idx0; path.push({x:pointsBruts[idx0].x+(pointsBruts[idx1].x-pointsBruts[idx0].x)*frac, y:pointsBruts[idx0].y+(pointsBruts[idx1].y-pointsBruts[idx0].y)*frac}); }
           const state = { path, tracing:false, sorties:0, startTime:null, points:[], lastOut:false };
-          const epreuve = new Epreuve('Tracé de précision');
+          const epreuve = new Epreuve('Tracé de précision', 'numerique', isTraining);
           App.render(`
-            <div class="card"><h2>✏️ Tracé de précision</h2>
+            <div class="card"><h2>✏️ Tracé de précision ${isTraining?'(Entraînement)':''}</h2>
               <p>Suivez le chemin avec la souris (ou doigt). <span style="color:red">Si vous sortez du gris, le trait devient rouge.</span></p>
               <canvas id="traceCanvas" width="800" height="350" style="border:1px solid var(--border); width:100%;"></canvas>
               <button class="btn secondary" onclick="showEpreuves()">Menu</button>
@@ -948,250 +876,140 @@
           `);
           const canvas = document.getElementById('traceCanvas');
           const ctx = canvas.getContext('2d');
-          ctx.clearRect(0,0,w,h);
-          ctx.beginPath(); ctx.strokeStyle='#ccc'; ctx.lineWidth=25; ctx.lineCap='round';
-          ctx.moveTo(path[0].x, path[0].y);
-          for(let i=1;i<path.length;i++) ctx.lineTo(path[i].x, path[i].y);
-          ctx.stroke();
-          ctx.fillStyle='red'; ctx.beginPath(); ctx.arc(path[0].x, path[0].y,8,0,2*Math.PI); ctx.fill();
-          ctx.fillStyle='blue'; ctx.beginPath(); ctx.arc(path[path.length-1].x, path[path.length-1].y,8,0,2*Math.PI); ctx.fill();
-
+          ctx.clearRect(0,0,w,h); ctx.beginPath(); ctx.strokeStyle='#ccc'; ctx.lineWidth=25; ctx.lineCap='round'; ctx.moveTo(path[0].x,path[0].y); for(let i=1;i<path.length;i++) ctx.lineTo(path[i].x,path[i].y); ctx.stroke();
+          ctx.fillStyle='red'; ctx.beginPath(); ctx.arc(path[0].x,path[0].y,8,0,2*Math.PI); ctx.fill(); ctx.fillStyle='blue'; ctx.beginPath(); ctx.arc(path[path.length-1].x,path[path.length-1].y,8,0,2*Math.PI); ctx.fill();
           const TOLERANCE = 12.5;
-          canvas.addEventListener('mousedown', (e)=>{
-            const rect = canvas.getBoundingClientRect();
-            const scaleX = canvas.width/rect.width, scaleY = canvas.height/rect.height;
-            const x = (e.clientX-rect.left)*scaleX, y = (e.clientY-rect.top)*scaleY;
-            if(Math.hypot(x-path[0].x, y-path[0].y) < 20) {
-              state.tracing = true; state.startTime = Date.now();
-            }
-          });
-          const move = (x,y) => {
-            if(!state.tracing) return;
-            state.points.push({x,y});
-            let minDist = Infinity;
-            for(const p of path) minDist = Math.min(minDist, Math.hypot(x-p.x, y-p.y));
-            const isOut = minDist > TOLERANCE;
-            if(isOut && !state.lastOut) state.sorties++;
-            state.lastOut = isOut;
-            ctx.fillStyle = isOut ? '#ef4444' : '#10b981';
-            ctx.beginPath(); ctx.arc(x, y, 4, 0, 2*Math.PI); ctx.fill();
-            const end = path[path.length-1];
-            if(Math.hypot(x-end.x, y-end.y) < 12) {
-              state.tracing = false;
-              canvas.removeEventListener('mousemove', mouseMove);
-              canvas.removeEventListener('touchmove', touchMove);
-              Epreuves.TracePrecision.terminer();
-            }
-          };
-          const mouseMove = (e) => {
-            const rect = canvas.getBoundingClientRect();
-            const scaleX = canvas.width/rect.width, scaleY = canvas.height/rect.height;
-            move((e.clientX-rect.left)*scaleX, (e.clientY-rect.top)*scaleY);
-          };
-          const touchMove = (e) => {
-            e.preventDefault();
-            const rect = canvas.getBoundingClientRect();
-            const scaleX = canvas.width/rect.width, scaleY = canvas.height/rect.height;
-            const t = e.touches[0];
-            move((t.clientX-rect.left)*scaleX, (t.clientY-rect.top)*scaleY);
-          };
-          canvas.addEventListener('mousemove', mouseMove);
-          canvas.addEventListener('touchmove', touchMove, {passive:false});
-          window._tpEpreuve = epreuve; window._tpState = state;
+          canvas.addEventListener('mousedown', (e)=>{ const rect=canvas.getBoundingClientRect(); const scaleX=canvas.width/rect.width, scaleY=canvas.height/rect.height; const x=(e.clientX-rect.left)*scaleX, y=(e.clientY-rect.top)*scaleY; if(Math.hypot(x-path[0].x,y-path[0].y)<20){ state.tracing=true; state.startTime=Date.now(); } });
+          const move = (x,y) => { if(!state.tracing) return; state.points.push({x,y,time:Date.now()}); let minDist=Infinity; for(const p of path) minDist=Math.min(minDist,Math.hypot(x-p.x,y-p.y)); const isOut=minDist>TOLERANCE; if(isOut && !state.lastOut) state.sorties++; state.lastOut=isOut; ctx.fillStyle=isOut?'#ef4444':'#10b981'; ctx.beginPath(); ctx.arc(x,y,4,0,2*Math.PI); ctx.fill(); const end=path[path.length-1]; if(Math.hypot(x-end.x,y-end.y)<12){ state.tracing=false; canvas.removeEventListener('mousemove',mouseMove); canvas.removeEventListener('touchmove',touchMove); Epreuves.TracePrecision.terminer(); } };
+          const mouseMove = (e) => { const rect=canvas.getBoundingClientRect(); const scaleX=canvas.width/rect.width, scaleY=canvas.height/rect.height; move((e.clientX-rect.left)*scaleX,(e.clientY-rect.top)*scaleY); };
+          const touchMove = (e) => { e.preventDefault(); const rect=canvas.getBoundingClientRect(); const scaleX=canvas.width/rect.width, scaleY=canvas.height/rect.height; const t=e.touches[0]; move((t.clientX-rect.left)*scaleX,(t.clientY-rect.top)*scaleY); };
+          canvas.addEventListener('mousemove',mouseMove); canvas.addEventListener('touchmove',touchMove,{passive:false});
+          window._tpEpreuve=epreuve; window._tpState=state;
         },
         terminer() {
-          const temps = (Date.now()-window._tpState.startTime)/1000;
-          window._tpEpreuve.session.score = { temps:temps.toFixed(1), sorties:window._tpState.sorties };
-          window._tpEpreuve.finish();
-          App.render(`<div class="card"><h2>Résultat Tracé</h2><p>Temps: ${temps.toFixed(1)}s, Sorties: ${window._tpState.sorties}</p><button class="btn" onclick="showEpreuves()">Menu</button></div>`);
+          const state=window._tpState; const temps=(Date.now()-state.startTime)/1000;
+          const epreuve=window._tpEpreuve;
+          epreuve.session.score={temps:temps.toFixed(1), sorties:state.sorties};
+          App.render(`<div class="card"><h2>Résultat Tracé</h2><p>Temps: ${temps.toFixed(1)}s, Sorties: ${state.sorties}</p></div>`);
+          if(!epreuve.isTraining){ epreuve.finish(); askSentiment(epreuve.session); }
+          else{ setTimeout(()=>{ alert('Entraînement terminé !'); showEpreuves(); }, 100); }
         }
       },
-
       PointsARelier: {
-        start() {
+        chooseMode() { chooseMode('Points à relier', Epreuves.PointsARelier.start); },
+        start(mode) {
           if(!App.currentUser) return alert('Profil requis.');
-          const points = [
-            {x:400, y:30, num:1},{x:480, y:150, num:2},{x:700, y:120, num:3},
-            {x:520, y:240, num:4},{x:580, y:380, num:5},{x:400, y:300, num:6},
-            {x:220, y:380, num:7},{x:280, y:240, num:8},{x:100, y:120, num:9},
-            {x:320, y:150, num:10}
-          ];
+          const isTraining = (mode === 'entrainement');
+          const points = [{x:400,y:30,num:1},{x:480,y:150,num:2},{x:700,y:120,num:3},{x:520,y:240,num:4},{x:580,y:380,num:5},{x:400,y:300,num:6},{x:220,y:380,num:7},{x:280,y:240,num:8},{x:100,y:120,num:9},{x:320,y:150,num:10}];
           const state = { points, current:1, startTime:Date.now(), erreurs:0 };
-          const epreuve = new Epreuve('Points à relier');
-          App.render(`
-            <div class="card"><h2>🔗 Points à relier</h2>
-              <p>Cliquez sur les points dans l'ordre pour faire apparaître le dessin !</p>
-              <canvas id="prCanvas" width="800" height="400" style="border:1px solid var(--border); width:100%;"></canvas>
-              <button class="btn secondary" onclick="showEpreuves()">Menu</button>
-            </div>
-          `);
-          const canvas = document.getElementById('prCanvas');
-          const ctx = canvas.getContext('2d');
-          function draw() {
-            ctx.clearRect(0,0,800,400);
-            points.forEach((p,i)=>{
-              ctx.beginPath(); ctx.arc(p.x,p.y,12,0,2*Math.PI);
-              ctx.fillStyle = i < state.current-1 ? '#10b981' : '#f59e0b';
-              ctx.fill(); ctx.fillStyle='#000'; ctx.font='bold 16px sans-serif'; ctx.fillText(p.num, p.x-8, p.y+6);
-            });
-            if(state.current > 2) {
-              ctx.beginPath(); ctx.strokeStyle='#10b981'; ctx.lineWidth=4;
-              for(let i=0; i<state.current-2; i++) {
-                ctx.moveTo(points[i].x, points[i].y);
-                ctx.lineTo(points[i+1].x, points[i+1].y);
-              }
-              ctx.stroke();
-            }
-          }
+          const epreuve = new Epreuve('Points à relier', 'numerique', isTraining);
+          App.render(`<div class="card"><h2>🔗 Points à relier ${isTraining?'(Entraînement)':''}</h2><p>Cliquez sur les points dans l'ordre pour faire apparaître le dessin !</p><canvas id="prCanvas" width="800" height="400" style="border:1px solid var(--border); width:100%;"></canvas><button class="btn secondary" onclick="showEpreuves()">Menu</button></div>`);
+          const canvas = document.getElementById('prCanvas'); const ctx = canvas.getContext('2d');
+          function draw(){ ctx.clearRect(0,0,800,400); points.forEach((p,i)=>{ ctx.beginPath(); ctx.arc(p.x,p.y,12,0,2*Math.PI); ctx.fillStyle=i<state.current-1?'#10b981':'#f59e0b'; ctx.fill(); ctx.fillStyle='#000'; ctx.font='bold 16px sans-serif'; ctx.fillText(p.num,p.x-8,p.y+6); }); if(state.current>2){ ctx.beginPath(); ctx.strokeStyle='#10b981'; ctx.lineWidth=4; for(let i=0;i<state.current-2;i++){ctx.moveTo(points[i].x,points[i].y);ctx.lineTo(points[i+1].x,points[i+1].y);} ctx.stroke(); } }
           draw();
-          canvas.addEventListener('click', (e)=>{
-            const rect = canvas.getBoundingClientRect();
-            const scaleX = canvas.width/rect.width, scaleY = canvas.height/rect.height;
-            const x = (e.clientX-rect.left)*scaleX, y = (e.clientY-rect.top)*scaleY;
-            const target = points[state.current-1];
-            if(!target) return;
-            if(Math.hypot(x-target.x, y-target.y) < 25) {
-              state.current++; App.beep(500,100);
-              if(state.current > points.length) {
-                const temps = (Date.now()-state.startTime)/1000;
-                epreuve.session.score = { temps:temps.toFixed(1), erreurs:state.erreurs };
-                epreuve.finish();
-                App.render(`<div class="card"><h2>Terminé</h2><p>Temps: ${temps.toFixed(1)}s</p><button class="btn" onclick="showEpreuves()">Menu</button></div>`);
-              } else draw();
-            } else { state.erreurs++; App.beep(200,200); }
-          });
+          canvas.addEventListener('click', (e)=>{ const rect=canvas.getBoundingClientRect(); const scaleX=canvas.width/rect.width, scaleY=canvas.height/rect.height; const x=(e.clientX-rect.left)*scaleX, y=(e.clientY-rect.top)*scaleY; const target=points[state.current-1]; if(!target)return; if(Math.hypot(x-target.x,y-target.y)<25){ state.current++; App.beep(500,100); if(state.current>points.length){ const temps=(Date.now()-state.startTime)/1000; epreuve.session.score={temps:temps.toFixed(1),erreurs:state.erreurs}; App.render(`<div class="card"><h2>Terminé</h2><p>Temps: ${temps.toFixed(1)}s</p></div>`); if(!epreuve.isTraining){epreuve.finish();askSentiment(epreuve.session);} else{setTimeout(()=>{alert('Entraînement terminé !');showEpreuves();},100);} } else draw(); } else{state.erreurs++;App.beep(200,200);} });
         }
       },
-
       PerceptionVisuelle: {
-        start() {
+        chooseMode() { chooseMode('Perception visuelle', Epreuves.PerceptionVisuelle.start); },
+        start(mode) {
           if(!App.currentUser) return alert('Profil requis.');
-          const items = [
-            {q:'🔵', choices:['🔵','🟣','🔴','🟠'], correct:0},
-            {q:'⭐', choices:['🌟','⭐','✨','💫'], correct:1},
-            {q:'🟥', choices:['🟦','🟥','🟨','🟩'], correct:1},
-            {q:'▲', choices:['▼','◄','▲','►'], correct:2},
-            {q:'🐶', choices:['🐱','🐶','🐭','🐹'], correct:1},
-            {q:'🍎', choices:['🍏','🍎','🍐','🍊'], correct:1},
-            {q:'🚗', choices:['🚕','🚙','🚗','🚌'], correct:2},
-            {q:'⚽', choices:['🏀','⚾','⚽','🏈'], correct:2},
-            {q:'🎵', choices:['🎶','🎵','🎼','🎤'], correct:1},
-            {q:'❤️', choices:['🧡','💛','💚','❤️'], correct:3}
-          ];
+          const isTraining = (mode === 'entrainement');
+          const items = [{q:'🔵',choices:['🔵','🟣','🔴','🟠'],correct:0},{q:'⭐',choices:['🌟','⭐','✨','💫'],correct:1},{q:'🟥',choices:['🟦','🟥','🟨','🟩'],correct:1},{q:'▲',choices:['▼','◄','▲','►'],correct:2},{q:'🐶',choices:['🐱','🐶','🐭','🐹'],correct:1},{q:'🍎',choices:['🍏','🍎','🍐','🍊'],correct:1},{q:'🚗',choices:['🚕','🚙','🚗','🚌'],correct:2},{q:'⚽',choices:['🏀','⚾','⚽','🏈'],correct:2},{q:'🎵',choices:['🎶','🎵','🎼','🎤'],correct:1},{q:'❤️',choices:['🧡','💛','💚','❤️'],correct:3}];
           const state = { items, current:0, responses:[] };
-          const epreuve = new Epreuve('Perception visuelle');
-          App.render(`
-            <div class="card center"><h2>👁️ Perception visuelle</h2>
-              <p>Quelle est l'image identique au modèle ?</p>
-              <div id="pvModel" style="font-size:5rem; margin:1rem;"></div>
-              <div id="pvChoices" style="display:flex; gap:1rem; justify-content:center; font-size:2rem;"></div>
-              <p id="pvProgress">1/${items.length}</p>
-              <button class="btn secondary" onclick="showEpreuves()">Menu</button>
-            </div>
-          `);
-          this.state = state; this.epreuve = epreuve; this.afficher();
+          const epreuve = new Epreuve('Perception visuelle', 'numerique', isTraining);
+          App.render(`<div class="card center"><h2>👁️ Perception visuelle ${isTraining?'(Entraînement)':''}</h2><p>Quelle est l'image identique au modèle ?</p><div id="pvModel" style="font-size:5rem; margin:1rem;"></div><div id="pvChoices" style="display:flex; gap:1rem; justify-content:center; font-size:2rem;"></div><p id="pvProgress">1/${items.length}</p><button class="btn secondary" onclick="showEpreuves()">Menu</button></div>`);
+          window._pvState=state; window._pvEpreuve=epreuve;
+          Epreuves.PerceptionVisuelle.afficher();
         },
-        afficher() {
-          const s = this.state;
-          if(s.current >= s.items.length) { this.terminer(); return; }
-          const item = s.items[s.current];
-          document.getElementById('pvModel').textContent = item.q;
-          const choicesDiv = document.getElementById('pvChoices'); choicesDiv.innerHTML = '';
-          item.choices.forEach((c,i)=>{
-            const btn = document.createElement('button'); btn.className='btn'; btn.textContent=c; btn.style.fontSize='2rem';
-            btn.onclick = ()=>{
-              s.responses.push({ expected:item.correct, given:i, correct:i===item.correct });
-              s.current++; this.afficher();
-            };
-            choicesDiv.appendChild(btn);
-          });
-          document.getElementById('pvProgress').textContent = `${s.current+1}/${s.items.length}`;
-        },
-        terminer() {
-          const correct = this.state.responses.filter(r=>r.correct).length;
-          this.epreuve.session.score = { total:this.state.items.length, correct, erreurs:this.state.items.length-correct };
-          this.epreuve.finish();
-          App.render(`<div class="card"><h2>Résultat</h2><p>Correct: ${correct}/${this.state.items.length}</p><button class="btn" onclick="showEpreuves()">Menu</button></div>`);
-        }
+        afficher(){ const s=window._pvState; if(s.current>=s.items.length){Epreuves.PerceptionVisuelle.terminer();return;} const item=s.items[s.current]; document.getElementById('pvModel').textContent=item.q; const choicesDiv=document.getElementById('pvChoices'); choicesDiv.innerHTML=''; item.choices.forEach((c,i)=>{ const btn=document.createElement('button'); btn.className='btn'; btn.textContent=c; btn.style.fontSize='2rem'; btn.onclick=()=>{ s.responses.push({expected:item.correct,given:i,correct:i===item.correct}); s.current++; Epreuves.PerceptionVisuelle.afficher(); }; choicesDiv.appendChild(btn); }); document.getElementById('pvProgress').textContent=`${s.current+1}/${s.items.length}`; },
+        terminer(){ const correct=window._pvState.responses.filter(r=>r.correct).length; const epreuve=window._pvEpreuve; epreuve.session.score={total:window._pvState.items.length,correct,erreurs:window._pvState.items.length-correct}; App.render(`<div class="card"><h2>Résultat</h2><p>Correct: ${correct}/${window._pvState.items.length}</p></div>`); if(!epreuve.isTraining){epreuve.finish();askSentiment(epreuve.session);}else{setTimeout(()=>{alert('Entraînement terminé !');showEpreuves();},100);} }
       },
-
       TrailMaking: {
-        start() {
+        chooseMode() { chooseMode('Trail Making', Epreuves.TrailMaking.start); },
+        start(mode) {
           if(!App.currentUser) return alert('Profil requis.');
-          const elements = [];
-          const chars = 'ABCDEFGHIJ';
-          for(let i=0;i<10;i++) {
-            let x = 40+Math.random()*720, y = 40+Math.random()*320;
-            let overlap = true, attempts = 0;
-            while(overlap && attempts < 100) {
-              overlap = false;
-              for(const el of elements) {
-                if(Math.hypot(x-el.x, y-el.y) < 60) { overlap = true; break; }
-              }
-              if(overlap) { x = 40+Math.random()*720; y = 40+Math.random()*320; }
-              attempts++;
-            }
-            elements.push({type:'number', value:i+1, label:''+(i+1), x, y});
-          }
-          for(let i=0;i<10;i++) {
-            let x = 40+Math.random()*720, y = 40+Math.random()*320;
-            let overlap = true, attempts = 0;
-            while(overlap && attempts < 100) {
-              overlap = false;
-              for(const el of elements) {
-                if(Math.hypot(x-el.x, y-el.y) < 60) { overlap = true; break; }
-              }
-              if(overlap) { x = 40+Math.random()*720; y = 40+Math.random()*320; }
-              attempts++;
-            }
-            elements.push({type:'letter', value:chars[i], label:chars[i], x, y});
-          }
-          const expected = [];
-          for(let i=0;i<10;i++) { expected.push({type:'number',value:i+1}); expected.push({type:'letter',value:chars[i]}); }
-          const state = { elements, expected, current:0, startTime:Date.now(), erreurs:0 };
-          const epreuve = new Epreuve('Trail Making');
-          App.render(`
-            <div class="card"><h2>🔀 Trail Making</h2>
-              <p>Cliquez sur les ronds en alternant <b>chiffre</b> et <b>lettre</b> dans l'ordre :<br>
-              <span style="color:#3b82f6; font-size:1.2rem;">1 → A → 2 → B → 3 → C ...</span></p>
-              <canvas id="tmCanvas" width="800" height="400" style="border:1px solid var(--border); width:100%;"></canvas>
-              <button class="btn secondary" onclick="showEpreuves()">Menu</button>
-            </div>
-          `);
-          const canvas = document.getElementById('tmCanvas');
-          const ctx = canvas.getContext('2d');
-          const draw = () => {
-            ctx.clearRect(0,0,800,400);
-            elements.forEach(el => {
-              ctx.beginPath(); ctx.arc(el.x,el.y,18,0,2*Math.PI);
-              ctx.fillStyle='#f59e0b'; ctx.fill();
-              ctx.fillStyle='#000'; ctx.font='bold 14px sans-serif'; ctx.fillText(el.label, el.x-8, el.y+5);
-            });
-          };
+          const isTraining = (mode === 'entrainement');
+          const elements = []; const chars='ABCDEFGHIJ';
+          for(let i=0;i<10;i++){ let x=40+Math.random()*720,y=40+Math.random()*320; let overlap=true,attempts=0; while(overlap&&attempts<100){overlap=false; for(const el of elements){if(Math.hypot(x-el.x,y-el.y)<60){overlap=true;break;}} if(overlap){x=40+Math.random()*720;y=40+Math.random()*320;} attempts++;} elements.push({type:'number',value:i+1,label:''+(i+1),x,y}); }
+          for(let i=0;i<10;i++){ let x=40+Math.random()*720,y=40+Math.random()*320; let overlap=true,attempts=0; while(overlap&&attempts<100){overlap=false; for(const el of elements){if(Math.hypot(x-el.x,y-el.y)<60){overlap=true;break;}} if(overlap){x=40+Math.random()*720;y=40+Math.random()*320;} attempts++;} elements.push({type:'letter',value:chars[i],label:chars[i],x,y}); }
+          const expected=[]; for(let i=0;i<10;i++){expected.push({type:'number',value:i+1});expected.push({type:'letter',value:chars[i]});}
+          const state={elements,expected,current:0,startTime:Date.now(),erreurs:0};
+          const epreuve=new Epreuve('Trail Making','numerique',isTraining);
+          App.render(`<div class="card"><h2>🔀 Trail Making ${isTraining?'(Entraînement)':''}</h2><p>Cliquez sur les ronds en alternant <b>chiffre</b> et <b>lettre</b> dans l'ordre :<br><span style="color:#3b82f6;font-size:1.2rem;">1 → A → 2 → B → 3 → C ...</span></p><canvas id="tmCanvas" width="800" height="400" style="border:1px solid var(--border); width:100%;"></canvas><button class="btn secondary" onclick="showEpreuves()">Menu</button></div>`);
+          const canvas=document.getElementById('tmCanvas'); const ctx=canvas.getContext('2d');
+          const draw=()=>{ctx.clearRect(0,0,800,400);elements.forEach(el=>{ctx.beginPath();ctx.arc(el.x,el.y,18,0,2*Math.PI);ctx.fillStyle='#f59e0b';ctx.fill();ctx.fillStyle='#000';ctx.font='bold 14px sans-serif';ctx.fillText(el.label,el.x-8,el.y+5);});};
           draw();
           const clickHandler = (e) => {
-            const rect = canvas.getBoundingClientRect();
-            const scaleX = canvas.width/rect.width, scaleY = canvas.height/rect.height;
-            const x = (e.clientX-rect.left)*scaleX, y = (e.clientY-rect.top)*scaleY;
-            const exp = state.expected[state.current];
-            if(!exp) return;
-            let clicked = null;
-            for(const el of elements) {
-              if(Math.hypot(x-el.x, y-el.y) < 22) { clicked = el; break; }
-            }
+            const rect=canvas.getBoundingClientRect(); const scaleX=canvas.width/rect.width, scaleY=canvas.height/rect.height;
+            const x=(e.clientX-rect.left)*scaleX, y=(e.clientY-rect.top)*scaleY;
+            const exp=state.expected[state.current]; if(!exp) return;
+            let clicked=null;
+            for(const el of elements){ if(Math.hypot(x-el.x,y-el.y)<22){ clicked=el; break; } }
             if(!clicked) return;
-            if(clicked.type === exp.type && clicked.value === exp.value) {
+            if(clicked.type===exp.type && clicked.value===exp.value){
               state.current++; App.beep(500,100);
-              if(state.current >= state.expected.length) {
+              if(state.current>=state.expected.length){
                 canvas.removeEventListener('click', clickHandler);
-                const temps = (Date.now()-state.startTime)/1000;
-                epreuve.session.score = { temps:temps.toFixed(1), erreurs:state.erreurs };
-                epreuve.finish();
-                App.render(`<div class="card"><h2>Terminé</h2><p>Temps: ${temps.toFixed(1)}s</p><button class="btn" onclick="showEpreuves()">Menu</button></div>`);
+                const temps=(Date.now()-state.startTime)/1000;
+                epreuve.session.score={temps:temps.toFixed(1),erreurs:state.erreurs};
+                App.render(`<div class="card"><h2>Terminé</h2><p>Temps: ${temps.toFixed(1)}s</p></div>`);
+                if(!epreuve.isTraining){ epreuve.finish(); askSentiment(epreuve.session); }
+                else{ setTimeout(()=>{ alert('Entraînement terminé !'); showEpreuves(); }, 100); }
               } else draw();
             } else { state.erreurs++; App.beep(200,200); }
           };
           canvas.addEventListener('click', clickHandler);
+        }
+      },
+      Memorisation: {
+        chooseMode() { chooseMode('Mémorisation visuelle', Epreuves.Memorisation.start); },
+        start(mode) {
+          if(!App.currentUser) return alert('Profil requis.');
+          const isTraining = (mode === 'entrainement');
+          const animaux = ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮'];
+          const selection = animaux.sort(()=>Math.random()-0.5).slice(0,6);
+          const allItems = [...selection, ...animaux.filter(i=>!selection.includes(i)).slice(0,6)].sort(()=>Math.random()-0.5);
+          const state = { selection, allItems, chosen:[], startTime:null };
+          const epreuve = new Epreuve('Mémorisation visuelle', 'numerique', isTraining);
+          App.render(`
+            <div class="top-nav"><span class="logo">Mémoire ${isTraining?'(Entraînement)':''}</span><button class="btn secondary" onclick="showEpreuves()">Menu</button></div>
+            <div class="card center">
+              <h2>🧠 Mémorisation visuelle</h2>
+              <p>Mémorisez ces 6 animaux (ils disparaîtront après 5 secondes) :</p>
+              <div style="font-size:3rem; margin:1rem;">${selection.join(' ')}</div>
+              <button class="btn" id="startMemBtn">Démarrer</button>
+            </div>
+          `);
+          document.getElementById('startMemBtn').addEventListener('click', ()=>{
+            state.startTime = Date.now();
+            App.render(`
+              <div class="card center">
+                <h2>🧠 Mémorisation visuelle</h2>
+                <p>Cliquez sur les animaux que vous avez vus :</p>
+                <div id="memChoices" style="display:flex; flex-wrap:wrap; gap:0.5rem; justify-content:center; font-size:2.5rem;"></div>
+                <button class="btn success" id="validateMem">Valider</button>
+              </div>
+            `);
+            const choicesDiv = document.getElementById('memChoices');
+            state.allItems.forEach(item => {
+              const div = document.createElement('div');
+              div.textContent = item; div.className = 'mem-item';
+              div.addEventListener('click', ()=>{
+                if(div.classList.contains('selected')) { div.classList.remove('selected'); state.chosen = state.chosen.filter(c=>c!==item); }
+                else { div.classList.add('selected'); state.chosen.push(item); }
+              });
+              choicesDiv.appendChild(div);
+            });
+            document.getElementById('validateMem').addEventListener('click', ()=>{
+              const correct = state.chosen.filter(c=>selection.includes(c)).length;
+              const errors = state.chosen.filter(c=>!selection.includes(c)).length;
+              epreuve.session.score = { correct, errors, total:6 };
+              App.render(`<div class="card"><h2>Résultat</h2><p>Correct: ${correct}/6, Erreurs: ${errors}</p></div>`);
+              if(!epreuve.isTraining) { epreuve.finish(); askSentiment(epreuve.session); }
+              else { setTimeout(()=>{ alert('Entraînement terminé !'); showEpreuves(); }, 100); }
+            });
+          });
         }
       }
     };
@@ -1206,32 +1024,16 @@
       const clientY = e.touches ? e.touches[0].clientY : e.clientY;
       const shiftX = clientX - el.getBoundingClientRect().left;
       const shiftY = clientY - el.getBoundingClientRect().top;
-      const move = (ev) => {
-        const cx = ev.touches ? ev.touches[0].clientX : ev.clientX;
-        const cy = ev.touches ? ev.touches[0].clientY : ev.clientY;
-        el.style.left = (cx - rect.left - shiftX) + 'px';
-        el.style.top = (cy - rect.top - shiftY) + 'px';
-      };
-      const stop = () => {
-        document.removeEventListener('mousemove', move);
-        document.removeEventListener('touchmove', move);
-        document.removeEventListener('mouseup', stop);
-        document.removeEventListener('touchend', stop);
-      };
-      document.addEventListener('mousemove', move);
-      document.addEventListener('touchmove', move, {passive:false});
-      document.addEventListener('mouseup', stop);
-      document.addEventListener('touchend', stop);
+      const move = (ev) => { const cx = ev.touches ? ev.touches[0].clientX : ev.clientX; const cy = ev.touches ? ev.touches[0].clientY : ev.clientY; el.style.left = (cx - rect.left - shiftX) + 'px'; el.style.top = (cy - rect.top - shiftY) + 'px'; };
+      const stop = () => { document.removeEventListener('mousemove', move); document.removeEventListener('touchmove', move); document.removeEventListener('mouseup', stop); document.removeEventListener('touchend', stop); };
+      document.addEventListener('mousemove', move); document.addEventListener('touchmove', move, {passive:false}); document.addEventListener('mouseup', stop); document.addEventListener('touchend', stop);
     }
 
     // ========== INITIALISATION ==========
     window.onload = () => {
       App.loadSettings();
       const last = localStorage.getItem('ergoeval_lastUser');
-      if(last) {
-        const user = App.getUsers().find(u=>u.id===last);
-        if(user) { App.currentUser = user; showDashboard(); return; }
-      }
+      if(last) { const user = App.getUsers().find(u=>u.id===last); if(user) { App.currentUser = user; showDashboard(); return; } }
       showLogin();
     };
 
@@ -1246,6 +1048,9 @@
     window.showRapport = showRapport;
     window.showInfo = showInfo;
     window.Epreuves = Epreuves;
+    window.askSentiment = askSentiment;
+    window.saveSentiment = saveSentiment;
+    window.showPaperInput = showPaperInput;
   </script>
 </body>
 </html>
