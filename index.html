@@ -303,7 +303,7 @@
         }
         case 'Calcul mental': {
           const correct = score.correct || 0;
-          const total = score.total || 6;
+          const total = score.total || 8;
           return (correct / total) * 10;
         }
         case 'Problèmes': {
@@ -314,7 +314,7 @@
         case 'Copie de texte': {
           const wpm = score.wpm || 0;
           const erreurs = score.erreurs || 0;
-          const precision = Math.max(0, 1 - erreurs / 10); // 0 erreur => 1, 10 erreurs => 0
+          const precision = Math.max(0, 1 - erreurs / 10);
           return Math.min(10, (wpm / 20) * 10 * precision);
         }
         case 'Barrage visuel': {
@@ -392,8 +392,10 @@
       let htmlCategories = '';
       for(const [cat, note] of Object.entries(categories)) {
         const color = note >= 7 ? 'var(--success)' : note >= 4 ? 'var(--warning)' : 'var(--danger)';
+        const epreuvesCat = CATEGORIES[cat].join(', ');
         htmlCategories += `<div class="category-card" style="border-left: 4px solid ${color}">
           <strong>${cat}</strong> : <span style="font-size:1.2rem; font-weight:bold;">${note.toFixed(1)}/10</span>
+          <div style="font-size:0.9rem; margin-top:0.3rem; color: var(--text);">Épreuves : ${epreuvesCat}</div>
           <p style="font-size:0.9rem; margin-top:0.5rem;">${note >= 7 ? '✅ Facilité' : note >= 4 ? '⚠️ Difficulté modérée' : '❌ Difficulté importante'}</p>
         </div>`;
       }
@@ -439,6 +441,7 @@
       finish() { App.saveSession(this.session); }
     }
 
+    // Remarque: Toutes les fonctions "Menu" renvoient désormais vers showEpreuves().
     const Epreuves = {
       Pointage: {
         start() {
@@ -447,7 +450,7 @@
           const state = { running:false, targetCount:20, current:0, hits:0, misses:0, startTime:0, times:[], sizes:[30,45,60,75], target:null, interval:null };
           const epreuve = new Epreuve('Pointage de cibles');
           App.render(`
-            <div class="top-nav"><span class="logo">Pointage</span><button class="btn secondary" onclick="Epreuves.Pointage.cleanup()">Annuler</button></div>
+            <div class="top-nav"><span class="logo">Pointage</span><button class="btn secondary" onclick="showEpreuves()">Menu</button></div>
             <div class="card"><h2>🎯 Pointage de cibles</h2><p>Cliquez sur les cibles rouges aussi vite que possible.</p>
               <div class="timer" id="timer">00:00</div><div class="game-area" id="gameArea"></div>
               <button class="btn" id="startBtn" onclick="Epreuves.Pointage.demarrer()">Démarrer</button>
@@ -504,9 +507,8 @@
           const prec = s.hits/(s.hits+s.misses)*100 || 0;
           this.epreuve.session.score = { hits:s.hits, misses:s.misses, precision:Math.round(prec), avgMs:Math.round(avg), totalSec:total.toFixed(1) };
           this.epreuve.finish();
-          App.render(`<div class="card"><h2>Résultat</h2><p>Cibles: ${s.hits}/${s.targetCount}, Précision: ${prec.toFixed(1)}%, Temps: ${total.toFixed(1)}s</p><button class="btn" onclick="showEpreuves()">Retour</button></div>`);
+          App.render(`<div class="card"><h2>Résultat</h2><p>Cibles: ${s.hits}/${s.targetCount}, Précision: ${prec.toFixed(1)}%, Temps: ${total.toFixed(1)}s</p><button class="btn" onclick="showEpreuves()">Menu</button></div>`);
         },
-        cleanup() { clearInterval(this.state?.interval); showEpreuves(); }
       },
 
       GlisserDeposer: {
@@ -516,7 +518,7 @@
           const state = { current:0, errors:0, startTime:Date.now(), interval:null };
           const epreuve = new Epreuve('Glisser-déposer');
           App.render(`
-            <div class="top-nav"><span class="logo">Glisser-déposer</span><button class="btn secondary" onclick="Epreuves.GlisserDeposer.cleanup()">Annuler</button></div>
+            <div class="top-nav"><span class="logo">Glisser-déposer</span><button class="btn secondary" onclick="showEpreuves()">Menu</button></div>
             <div class="card"><h2>🖐️ Glisser-déposer</h2><p>Déposez chaque forme dans la bonne boîte.</p>
               <div class="timer" id="timer">00:00</div>
               <div style="display:flex; justify-content:space-around; margin:1rem 0;">
@@ -554,9 +556,8 @@
           const total = (Date.now()-this.state.startTime)/1000;
           this.epreuve.session.score = { items:3, temps:total.toFixed(1), erreurs:this.state.errors };
           this.epreuve.finish();
-          App.render(`<div class="card"><h2>Terminé</h2><p>Temps: ${total.toFixed(1)}s, Erreurs: ${this.state.errors}</p><button class="btn" onclick="showEpreuves()">Retour</button></div>`);
+          App.render(`<div class="card"><h2>Terminé</h2><p>Temps: ${total.toFixed(1)}s, Erreurs: ${this.state.errors}</p><button class="btn" onclick="showEpreuves()">Menu</button></div>`);
         },
-        cleanup() { clearInterval(this.state?.interval); showEpreuves(); }
       },
 
       DoubleClic: {
@@ -571,7 +572,7 @@
           const state = { essais, current:0, times:[], startTime:Date.now() };
           const epreuve = new Epreuve('Double-clic / Clic droit');
           App.render(`
-            <div class="top-nav"><span class="logo">Double-clic</span><button class="btn secondary" onclick="showEpreuves()">Annuler</button></div>
+            <div class="top-nav"><span class="logo">Double-clic</span><button class="btn secondary" onclick="showEpreuves()">Menu</button></div>
             <div class="card center"><h2>🖱️ Double-clic / Clic droit</h2>
               <p id="consigne"></p><div id="icon" style="font-size:5rem; cursor:pointer;"></div>
             </div>
@@ -595,7 +596,7 @@
           const total = (Date.now()-this.state.startTime)/1000;
           this.epreuve.session.score = { essais:this.state.essais.length, temps:total.toFixed(1) };
           this.epreuve.finish();
-          App.render(`<div class="card"><h2>Terminé</h2><p>Temps: ${total.toFixed(1)}s</p><button class="btn" onclick="showEpreuves()">Retour</button></div>`);
+          App.render(`<div class="card"><h2>Terminé</h2><p>Temps: ${total.toFixed(1)}s</p><button class="btn" onclick="showEpreuves()">Menu</button></div>`);
         }
       },
 
@@ -606,7 +607,7 @@
           const state = { nombres, current:0, responses:[] };
           const epreuve = new Epreuve('Dictée de nombres');
           App.render(`
-            <div class="top-nav"><span class="logo">Dictée</span><button class="btn secondary" onclick="showEpreuves()">Annuler</button></div>
+            <div class="top-nav"><span class="logo">Dictée</span><button class="btn secondary" onclick="showEpreuves()">Menu</button></div>
             <div class="card"><h2>🔢 Dictée de nombres</h2><p>Écoutez et tapez le nombre entendu.</p>
               <div id="dnPlay" style="font-size:2rem; cursor:pointer;" onclick="Epreuves.Dictee.lire()">🔊</div>
               <input id="dnInput" style="width:200px;"><button class="btn" onclick="Epreuves.Dictee.valider()">Valider</button>
@@ -631,7 +632,7 @@
             const correct = s.responses.filter(r=>r.correct).length;
             this.epreuve.session.score = { total:s.nombres.length, correct, erreurs:s.nombres.length-correct };
             this.epreuve.finish();
-            App.render(`<div class="card"><h2>Résultat</h2><p>Correct: ${correct}/${s.nombres.length}</p><button class="btn" onclick="showEpreuves()">Retour</button></div>`);
+            App.render(`<div class="card"><h2>Résultat</h2><p>Correct: ${correct}/${s.nombres.length}</p><button class="btn" onclick="showEpreuves()">Menu</button></div>`);
           } else {
             document.getElementById('dnInput').value = '';
             document.getElementById('dnProgress').textContent = `${s.current+1}/${s.nombres.length}`; this.lire();
@@ -639,26 +640,24 @@
         }
       },
 
-      // -------------------- CALCUL MENTAL (niveau CM2) --------------------
       CalculMental: {
         start() {
           if(!App.currentUser) return alert('Profil requis.');
-          // Opérations plus difficiles adaptées au CM2
           const ops = [
-            {q:'234 + 189', a:423},
-            {q:'125 × 4', a:500},
-            {q:'876 - 398', a:478},
-            {q:'45 × 12', a:540},
-            {q:'789 + 456', a:1245},
-            {q:'63 ÷ 7', a:9},
-            {q:'152 × 3', a:456},
-            {q:'1000 - 654', a:346}
+            {q:'12 + 9', a:21},
+            {q:'34 - 16', a:18},
+            {q:'5 × 7', a:35},
+            {q:'27 + 15', a:42},
+            {q:'63 - 28', a:35},
+            {q:'8 × 6', a:48},
+            {q:'100 - 45', a:55},
+            {q:'9 × 4', a:36}
           ];
           const state = { ops, current:0, responses:[] };
           const epreuve = new Epreuve('Calcul mental');
           App.render(`
-            <div class="top-nav"><span class="logo">Calcul</span><button class="btn secondary" onclick="showEpreuves()">Annuler</button></div>
-            <div class="card center"><h2>🧮 Calcul mental (CM2)</h2><p>Résolvez l'opération et validez.</p>
+            <div class="top-nav"><span class="logo">Calcul</span><button class="btn secondary" onclick="showEpreuves()">Menu</button></div>
+            <div class="card center"><h2>🧮 Calcul mental</h2><p>Résolvez l'opération et validez.</p>
               <div id="cmOp" style="font-size:2rem;"></div>
               <input type="number" id="cmInput" style="width:120px;">
               <button class="btn" onclick="Epreuves.CalculMental.valider()">Valider</button>
@@ -686,7 +685,7 @@
           const correct = this.state.responses.filter(r=>r.correct).length;
           this.epreuve.session.score = { total:this.state.ops.length, correct, erreurs:this.state.ops.length-correct };
           this.epreuve.finish();
-          App.render(`<div class="card"><h2>Résultat</h2><p>Correct: ${correct}/${this.state.ops.length}</p><button class="btn" onclick="showEpreuves()">Retour</button></div>`);
+          App.render(`<div class="card"><h2>Résultat</h2><p>Correct: ${correct}/${this.state.ops.length}</p><button class="btn" onclick="showEpreuves()">Menu</button></div>`);
         }
       },
 
@@ -702,7 +701,7 @@
           const state = { pb, current:0, responses:[] };
           const epreuve = new Epreuve('Problèmes');
           App.render(`
-            <div class="top-nav"><span class="logo">Problèmes</span><button class="btn secondary" onclick="showEpreuves()">Annuler</button></div>
+            <div class="top-nav"><span class="logo">Problèmes</span><button class="btn secondary" onclick="showEpreuves()">Menu</button></div>
             <div class="card"><h2>📝 Résolution de problèmes</h2>
               <p id="pbEnonce" style="font-size:1.2rem;"></p>
               <input type="number" id="pbInput" style="width:100px;">
@@ -730,14 +729,14 @@
           const correct = this.state.responses.filter(r=>r.correct).length;
           this.epreuve.session.score = { total:this.state.pb.length, correct, erreurs:this.state.pb.length-correct };
           this.epreuve.finish();
-          App.render(`<div class="card"><h2>Résultat</h2><p>Correct: ${correct}/${this.state.pb.length}</p><button class="btn" onclick="showEpreuves()">Retour</button></div>`);
+          App.render(`<div class="card"><h2>Résultat</h2><p>Correct: ${correct}/${this.state.pb.length}</p><button class="btn" onclick="showEpreuves()">Menu</button></div>`);
         }
       },
 
       CopieTexte: {
         start() {
           App.render(`
-            <div class="top-nav"><span class="logo">Copie</span><button class="btn secondary" onclick="showEpreuves()">Annuler</button></div>
+            <div class="top-nav"><span class="logo">Copie</span><button class="btn secondary" onclick="showEpreuves()">Menu</button></div>
             <div class="card"><h2>✍️ Copie de texte</h2>
               <button class="btn" onclick="Epreuves.CopieTexte.numerique()">💻 Numérique</button>
               <button class="btn" onclick="Epreuves.CopieTexte.papier()">📄 Papier</button>
@@ -755,7 +754,7 @@
               <div class="timer" id="timer">00:00</div>
               <button class="btn" id="startBtn" onclick="Epreuves.CopieTexte.demarrerNum()">Démarrer</button>
               <button class="btn success" id="submitBtn" onclick="Epreuves.CopieTexte.validerNum()" disabled>Valider</button>
-              <button class="btn secondary" onclick="showEpreuves()">Annuler</button>
+              <button class="btn secondary" onclick="showEpreuves()">Menu</button>
             </div>
           `);
           window._ctState = state; window._ctEpreuve = epreuve;
@@ -792,20 +791,18 @@
           const motsSaisis = texteSaisi.split(/\s+/).filter(m=>m.length>0);
           const nbMots = motsSaisis.length;
           const wpm = nbMots / (temps / 60);
-          // Calcul d'erreur : comparer les mots, mais aussi les caractères
           let erreurs = 0;
           const maxLen = Math.max(motsOriginaux.length, motsSaisis.length);
           for(let i=0; i<maxLen; i++) {
             if(motsOriginaux[i] !== motsSaisis[i]) erreurs++;
           }
-          // On ajoute aussi les corrections (backspaces) comme indicateur
           erreurs += window._ctState.corrections;
           window._ctEpreuve.session.score = { mots:nbMots, temps:temps.toFixed(1), wpm:Math.round(wpm), erreurs };
           window._ctEpreuve.finish();
           App.render(`<div class="card"><h2>Résultat Copie</h2>
             <p>Mots : ${nbMots} en ${temps.toFixed(1)}s (${Math.round(wpm)} mots/min)</p>
             <p>Erreurs (différences + corrections) : ${erreurs}</p>
-            <button class="btn" onclick="showEpreuves()">Retour</button></div>`);
+            <button class="btn" onclick="showEpreuves()">Menu</button></div>`);
           delete window._ctState; delete window._ctEpreuve;
         },
         papier() {
@@ -816,7 +813,7 @@
               <label>Nombre de caractères produits : <input type="number" id="papChars" min="0"></label>
               <label>Nombre d'erreurs : <input type="number" id="papErr" min="0"></label>
               <button class="btn" onclick="Epreuves.CopieTexte.enregPapier()">Enregistrer</button>
-              <button class="btn secondary" onclick="showEpreuves()">Annuler</button>
+              <button class="btn secondary" onclick="showEpreuves()">Menu</button>
             </div>`);
         },
         enregPapier() {
@@ -825,7 +822,7 @@
           const session = new Epreuve('Copie de texte', 'papier');
           session.session.score = { caracteres:chars, erreurs:err };
           session.finish();
-          App.render(`<div class="card"><h2>Enregistré</h2><button class="btn" onclick="showEpreuves()">Retour</button></div>`);
+          App.render(`<div class="card"><h2>Enregistré</h2><button class="btn" onclick="showEpreuves()">Menu</button></div>`);
         }
       },
 
@@ -838,7 +835,7 @@
           const state = { grid, cibles:grid.filter(g=>g===icons[0]).length, trouvees:0, fausses:0, startTime:Date.now(), interval:null };
           const epreuve = new Epreuve('Barrage visuel');
           App.render(`
-            <div class="top-nav"><span class="logo">Barrage</span><button class="btn secondary" onclick="showEpreuves()">Annuler</button></div>
+            <div class="top-nav"><span class="logo">Barrage</span><button class="btn secondary" onclick="showEpreuves()">Menu</button></div>
             <div class="card"><h2>🔍 Barrage visuel</h2><p>Cliquez sur toutes les cloches 🔔, puis "Terminé".</p>
               <div class="timer" id="timer">00:00</div>
               <div id="bvGrid" style="display:grid; grid-template-columns:repeat(10,1fr); gap:4px;"></div>
@@ -870,7 +867,7 @@
           const s = window._bvState; const temps = (Date.now()-s.startTime)/1000;
           window._bvEpreuve.session.score = { cibles:s.cibles, trouvees:s.trouvees, fausses:s.fausses, temps:temps.toFixed(1) };
           window._bvEpreuve.finish();
-          App.render(`<div class="card"><h2>Résultat</h2><p>Trouvées: ${s.trouvees}/${s.cibles}, Fausses: ${s.fausses}</p><button class="btn" onclick="showEpreuves()">Retour</button></div>`);
+          App.render(`<div class="card"><h2>Résultat</h2><p>Trouvées: ${s.trouvees}/${s.cibles}, Fausses: ${s.fausses}</p><button class="btn" onclick="showEpreuves()">Menu</button></div>`);
         }
       },
 
@@ -893,6 +890,7 @@
                 </div>
               </div>
               <button class="btn success" onclick="Epreuves.Assemblage.terminer()">Valider</button>
+              <button class="btn secondary" onclick="showEpreuves()">Menu</button>
             </div>
           `);
           document.getElementById('dropzone').addEventListener('dragover', e=>e.preventDefault());
@@ -918,7 +916,7 @@
           const temps = (Date.now()-window._afState.startTime)/1000;
           window._afEpreuve.session.score = { formes:window._afState.formes.length, temps:temps.toFixed(1) };
           window._afEpreuve.finish();
-          App.render(`<div class="card"><h2>Assemblage terminé</h2><button class="btn" onclick="showEpreuves()">Retour</button></div>`);
+          App.render(`<div class="card"><h2>Assemblage terminé</h2><button class="btn" onclick="showEpreuves()">Menu</button></div>`);
         }
       },
 
@@ -945,7 +943,7 @@
             <div class="card"><h2>✏️ Tracé de précision</h2>
               <p>Suivez le chemin avec la souris (ou doigt). <span style="color:red">Si vous sortez du gris, le trait devient rouge.</span></p>
               <canvas id="traceCanvas" width="800" height="350" style="border:1px solid var(--border); width:100%;"></canvas>
-              <button class="btn" onclick="Epreuves.TracePrecision.cleanup()">Annuler</button>
+              <button class="btn secondary" onclick="showEpreuves()">Menu</button>
             </div>
           `);
           const canvas = document.getElementById('traceCanvas');
@@ -1005,9 +1003,8 @@
           const temps = (Date.now()-window._tpState.startTime)/1000;
           window._tpEpreuve.session.score = { temps:temps.toFixed(1), sorties:window._tpState.sorties };
           window._tpEpreuve.finish();
-          App.render(`<div class="card"><h2>Résultat Tracé</h2><p>Temps: ${temps.toFixed(1)}s, Sorties: ${window._tpState.sorties}</p><button class="btn" onclick="showEpreuves()">Retour</button></div>`);
-        },
-        cleanup() { showEpreuves(); }
+          App.render(`<div class="card"><h2>Résultat Tracé</h2><p>Temps: ${temps.toFixed(1)}s, Sorties: ${window._tpState.sorties}</p><button class="btn" onclick="showEpreuves()">Menu</button></div>`);
+        }
       },
 
       PointsARelier: {
@@ -1025,7 +1022,7 @@
             <div class="card"><h2>🔗 Points à relier</h2>
               <p>Cliquez sur les points dans l'ordre pour faire apparaître le dessin !</p>
               <canvas id="prCanvas" width="800" height="400" style="border:1px solid var(--border); width:100%;"></canvas>
-              <button class="btn secondary" onclick="showEpreuves()">Annuler</button>
+              <button class="btn secondary" onclick="showEpreuves()">Menu</button>
             </div>
           `);
           const canvas = document.getElementById('prCanvas');
@@ -1059,7 +1056,7 @@
                 const temps = (Date.now()-state.startTime)/1000;
                 epreuve.session.score = { temps:temps.toFixed(1), erreurs:state.erreurs };
                 epreuve.finish();
-                App.render(`<div class="card"><h2>Terminé</h2><p>Temps: ${temps.toFixed(1)}s</p><button class="btn" onclick="showEpreuves()">Retour</button></div>`);
+                App.render(`<div class="card"><h2>Terminé</h2><p>Temps: ${temps.toFixed(1)}s</p><button class="btn" onclick="showEpreuves()">Menu</button></div>`);
               } else draw();
             } else { state.erreurs++; App.beep(200,200); }
           });
@@ -1089,7 +1086,7 @@
               <div id="pvModel" style="font-size:5rem; margin:1rem;"></div>
               <div id="pvChoices" style="display:flex; gap:1rem; justify-content:center; font-size:2rem;"></div>
               <p id="pvProgress">1/${items.length}</p>
-              <button class="btn secondary" onclick="showEpreuves()">Annuler</button>
+              <button class="btn secondary" onclick="showEpreuves()">Menu</button>
             </div>
           `);
           this.state = state; this.epreuve = epreuve; this.afficher();
@@ -1114,7 +1111,7 @@
           const correct = this.state.responses.filter(r=>r.correct).length;
           this.epreuve.session.score = { total:this.state.items.length, correct, erreurs:this.state.items.length-correct };
           this.epreuve.finish();
-          App.render(`<div class="card"><h2>Résultat</h2><p>Correct: ${correct}/${this.state.items.length}</p><button class="btn" onclick="showEpreuves()">Retour</button></div>`);
+          App.render(`<div class="card"><h2>Résultat</h2><p>Correct: ${correct}/${this.state.items.length}</p><button class="btn" onclick="showEpreuves()">Menu</button></div>`);
         }
       },
 
@@ -1158,7 +1155,7 @@
               <p>Cliquez sur les ronds en alternant <b>chiffre</b> et <b>lettre</b> dans l'ordre :<br>
               <span style="color:#3b82f6; font-size:1.2rem;">1 → A → 2 → B → 3 → C ...</span></p>
               <canvas id="tmCanvas" width="800" height="400" style="border:1px solid var(--border); width:100%;"></canvas>
-              <button class="btn secondary" onclick="showEpreuves()">Annuler</button>
+              <button class="btn secondary" onclick="showEpreuves()">Menu</button>
             </div>
           `);
           const canvas = document.getElementById('tmCanvas');
@@ -1190,7 +1187,7 @@
                 const temps = (Date.now()-state.startTime)/1000;
                 epreuve.session.score = { temps:temps.toFixed(1), erreurs:state.erreurs };
                 epreuve.finish();
-                App.render(`<div class="card"><h2>Terminé</h2><p>Temps: ${temps.toFixed(1)}s</p><button class="btn" onclick="showEpreuves()">Retour</button></div>`);
+                App.render(`<div class="card"><h2>Terminé</h2><p>Temps: ${temps.toFixed(1)}s</p><button class="btn" onclick="showEpreuves()">Menu</button></div>`);
               } else draw();
             } else { state.erreurs++; App.beep(200,200); }
           };
