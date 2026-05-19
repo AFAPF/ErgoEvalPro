@@ -1,5 +1,5 @@
-ErgoEval Pro – Bilan fonctionnel numérique pour enfants Dys
-ErgoEval Pro est un outil libre et gratuit destiné aux ergothérapeutes, psychologues, enseignants spécialisés et parents. Il permet d’évaluer l’impact de l’utilisation d’un ordinateur chez les enfants présentant des troubles « dys » (dyslexie, dyspraxie, dyscalculie, troubles mixtes). Le logiciel est entièrement exécutable dans un navigateur web, sans installation, et conserve les données localement.
+ErgoEvalNum – Bilan fonctionnel numérique pour enfants Dys
+ErgoEvalNum est un outil libre et gratuit destiné aux ergothérapeutes, psychologues, enseignants spécialisés et parents. Il permet d’évaluer l’impact de l’utilisation d’un ordinateur chez les enfants présentant des troubles « dys » (dyslexie, dyspraxie, dyscalculie, troubles mixtes). Le logiciel est entièrement exécutable dans un navigateur web, sans installation, et conserve les données localement.
 
 🧠 Fonctionnalités principales
 14 épreuves interactives couvrant :
